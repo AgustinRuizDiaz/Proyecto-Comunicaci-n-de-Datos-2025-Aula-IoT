@@ -46,8 +46,8 @@ def verificar_datos():
     from django.db import connection
     cursor = connection.cursor()
 
-    print("
-🔍 Verificando índices:"    tablas_indices = {
+    print("\n🔍 Verificando índices:")
+    tablas_indices = {
         'users_user': ['legajo', 'rol', 'is_active'],
         'classrooms_aula': ['ip_esp32', 'ultima_senal'],
         'sensors_sensor': ['aula_id', 'tipo', 'activo'],
@@ -59,7 +59,8 @@ def verificar_datos():
         indices_actuales = [row[0] for row in cursor.fetchall()]
         print(f"   • {tabla}: {len(indices_actuales)} índices creados")
 
-    print("
-✅ Verificación completada!"    print("🚀 El sistema está listo para usar."
+    print("\n✅ Verificación completada!")
+    print("🚀 El sistema está listo para usar.")
+
 if __name__ == '__main__':
     verificar_datos()
