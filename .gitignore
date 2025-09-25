@@ -1,4 +1,4 @@
-# Backend
+# Backend - Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -18,6 +18,119 @@ var/
 wheels/
 *.egg-info/
 .installed.cfg
+*.egg
+MANIFEST
+
+# Entornos virtuales
+venv/
+env/
+ENV/
+.venv/
+.env
+
+# Frontend - Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
+
+# Archivos de entorno
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+logs/
+*.log
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# Dependency directories
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Database
+*.db
+*.sqlite3
+db.sqlite3
+
+# MongoDB
+data/
+*.log
+
+# Redis
+dump.rdb
+
+# Archivos temporales
+*.tmp
+*.temp
+
+# Archivos de backup
+*.bak
+*.backup
+
+# Archivos de configuración local
+config.local.*
+settings.local.*
+
+# Archivos de documentación generados
+docs/_build/
+
+# Archivos de testing
+.coverage
+.pytest_cache/
+.tox/
+htmlcov/
+
+# Archivos de despliegue
+deploy/
+dist/
+build/
 *.egg
 MANIFEST
 
