@@ -14,6 +14,8 @@ class Sensor(models.Model):
     tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, verbose_name='Tipo de Sensor')
     descripcion = models.TextField(blank=True, verbose_name='Descripción')
     estado_actual = models.CharField(max_length=50, blank=True, verbose_name='Estado Actual')
+    pin_esp32 = models.IntegerField(verbose_name='Pin ESP32')
+    ultima_actualizacion = models.DateTimeField(auto_now=True, verbose_name='Última Actualización')
 
     class Meta:
         verbose_name = 'Sensor'

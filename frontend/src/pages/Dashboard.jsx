@@ -9,7 +9,9 @@ const Dashboard = () => {
     totalClassrooms: 0,
     totalSensors: 0,
     activeSensors: 0,
-    alerts: 0
+    alerts: 0,
+    onlineClassrooms: 0,
+    offlineClassrooms: 0
   })
   const [recentActivity, setRecentActivity] = useState([])
   const { on } = useSocket()
@@ -44,11 +46,17 @@ const Dashboard = () => {
       const classrooms = classroomsRes.data.results || classroomsRes.data
       const sensors = sensorsRes.data.results || sensorsRes.data
 
+      // Calcular estadísticas basadas en la estructura real de datos
+      const onlineClassrooms = classrooms.filter(c => c.estado_conexion === 'online').length
+      const offlineClassrooms = classrooms.filter(c => c.estado_conexion === 'offline').length
+
       setStats({
         totalClassrooms: classrooms.length,
         totalSensors: sensors.length,
-        activeSensors: sensors.filter(s => s.status === 'active').length,
-        alerts: sensors.filter(s => s.status === 'alert').length
+        activeSensors: sensors.filter(s => s.estado_actual && s.estado_actual.toLowerCase() === 'true').length,
+        alerts: 0, // Por ahora sin alertas reales
+        onlineClassrooms,
+        offlineClassrooms
       })
     } catch (error) {
       console.error('Error loading dashboard data:', error)
@@ -104,8 +112,8 @@ const Dashboard = () => {
               </svg>
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Sensores Activos</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.activeSensors}</p>
+              <p className="text-sm font-medium text-gray-600">Aulas En Línea</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.onlineClassrooms}</p>
             </div>
           </div>
         </div>
@@ -118,8 +126,8 @@ const Dashboard = () => {
               </svg>
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Alertas</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.alerts}</p>
+              <p className="text-sm font-medium text-gray-600">Aulas Offline</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.offlineClassrooms}</p>
             </div>
           </div>
         </div>
@@ -172,7 +180,7 @@ const Dashboard = () => {
               <svg className="w-5 h-5 text-purple-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
               </svg>
-              <span className="text-purple-700 font-medium">Ver Alertas</span>
+              <span className="text-purple-700 font-medium">Ver Estado</span>
             </button>
           </div>
         </div>

@@ -1,5 +1,6 @@
 from rest_framework.permissions import BasePermission
 from rest_framework.exceptions import PermissionDenied
+from .models import User
 
 
 class IsAuthenticated(BasePermission):
@@ -19,11 +20,15 @@ class IsAdmin(BasePermission):
     message = 'Solo los administradores pueden acceder a este recurso.'
 
     def has_permission(self, request, view):
-        return bool(
-            request.user and
-            request.user.is_authenticated and
-            request.user.rol == 'Admin'
-        )
+        if not request.user or not request.user.is_authenticated:
+            return False
+
+        try:
+            # Buscar el usuario personalizado relacionado
+            gestor_user = User.objects.get(auth_user=request.user)
+            return gestor_user.rol == 'Admin'
+        except User.DoesNotExist:
+            return False
 
 
 class IsOperator(BasePermission):
@@ -33,11 +38,15 @@ class IsOperator(BasePermission):
     message = 'Solo los operarios pueden acceder a este recurso.'
 
     def has_permission(self, request, view):
-        return bool(
-            request.user and
-            request.user.is_authenticated and
-            request.user.rol == 'Operario'
-        )
+        if not request.user or not request.user.is_authenticated:
+            return False
+
+        try:
+            # Buscar el usuario personalizado relacionado
+            gestor_user = User.objects.get(auth_user=request.user)
+            return gestor_user.rol == 'Operario'
+        except User.DoesNotExist:
+            return False
 
 
 class IsAdminOrReadOnly(BasePermission):
@@ -48,14 +57,18 @@ class IsAdminOrReadOnly(BasePermission):
         if not request.user or not request.user.is_authenticated:
             return False
 
-        if request.user.rol == 'Admin':
-            return True
+        try:
+            gestor_user = User.objects.get(auth_user=request.user)
+            if gestor_user.rol == 'Admin':
+                return True
 
-        # Para usuarios autenticados que no son Admin, solo permitir métodos seguros
-        if request.method in ['GET', 'HEAD', 'OPTIONS']:
-            return True
+            # Para usuarios autenticados que no son Admin, solo permitir métodos seguros
+            if request.method in ['GET', 'HEAD', 'OPTIONS']:
+                return True
 
-        return False
+            return False
+        except User.DoesNotExist:
+            return False
 
 
 class IsOperatorOrReadOnly(BasePermission):
@@ -66,14 +79,18 @@ class IsOperatorOrReadOnly(BasePermission):
         if not request.user or not request.user.is_authenticated:
             return False
 
-        if request.user.rol == 'Operario':
-            return True
+        try:
+            gestor_user = User.objects.get(auth_user=request.user)
+            if gestor_user.rol == 'Operario':
+                return True
 
-        # Para usuarios autenticados que no son Operario, solo permitir métodos seguros
-        if request.method in ['GET', 'HEAD', 'OPTIONS']:
-            return True
+            # Para usuarios autenticados que no son Operario, solo permitir métodos seguros
+            if request.method in ['GET', 'HEAD', 'OPTIONS']:
+                return True
 
-        return False
+            return False
+        except User.DoesNotExist:
+            return False
 
 
 class CanAccessUserData(BasePermission):
@@ -86,29 +103,37 @@ class CanAccessUserData(BasePermission):
         if not request.user or not request.user.is_authenticated:
             return False
 
-        if request.user.rol == 'Admin':
-            return True
-
-        if request.user.rol == 'Operario':
-            # Operarios pueden ver usuarios pero no modificarlos
-            if request.method in ['GET', 'HEAD', 'OPTIONS']:
+        try:
+            gestor_user = User.objects.get(auth_user=request.user)
+            if gestor_user.rol == 'Admin':
                 return True
 
-        return False
+            if gestor_user.rol == 'Operario':
+                # Operarios pueden ver usuarios pero no modificarlos
+                if request.method in ['GET', 'HEAD', 'OPTIONS']:
+                    return True
+
+            return False
+        except User.DoesNotExist:
+            return False
 
     def has_object_permission(self, request, view, obj):
         if not request.user or not request.user.is_authenticated:
             return False
 
-        if request.user.rol == 'Admin':
-            return True
+        try:
+            gestor_user = User.objects.get(auth_user=request.user)
+            if gestor_user.rol == 'Admin':
+                return True
 
-        if request.user.rol == 'Operario':
-            # Operarios solo pueden ver usuarios activos
-            if request.method in ['GET', 'HEAD', 'OPTIONS']:
-                return obj.is_active
+            if gestor_user.rol == 'Operario':
+                # Operarios solo pueden ver usuarios activos
+                if request.method in ['GET', 'HEAD', 'OPTIONS']:
+                    return obj.is_active
 
-        return False
+            return False
+        except User.DoesNotExist:
+            return False
 
 
 class CanAccessClassroomData(BasePermission):
@@ -121,15 +146,19 @@ class CanAccessClassroomData(BasePermission):
         if not request.user or not request.user.is_authenticated:
             return False
 
-        if request.user.rol == 'Admin':
-            return True
-
-        if request.user.rol == 'Operario':
-            # Operarios pueden ver aulas pero no modificarlas
-            if request.method in ['GET', 'HEAD', 'OPTIONS']:
+        try:
+            gestor_user = User.objects.get(auth_user=request.user)
+            if gestor_user.rol == 'Admin':
                 return True
 
-        return False
+            if gestor_user.rol == 'Operario':
+                # Operarios pueden ver aulas pero no modificarlas
+                if request.method in ['GET', 'HEAD', 'OPTIONS']:
+                    return True
+
+            return False
+        except User.DoesNotExist:
+            return False
 
 
 class CanAccessSensorData(BasePermission):
@@ -142,8 +171,12 @@ class CanAccessSensorData(BasePermission):
         if not request.user or not request.user.is_authenticated:
             return False
 
-        # Tanto Admin como Operario pueden acceder a sensores
-        return request.user.rol in ['Admin', 'Operario']
+        try:
+            gestor_user = User.objects.get(auth_user=request.user)
+            # Tanto Admin como Operario pueden acceder a sensores
+            return gestor_user.rol in ['Admin', 'Operario']
+        except User.DoesNotExist:
+            return False
 
 
 class CanAccessHistoryData(BasePermission):
@@ -156,8 +189,12 @@ class CanAccessHistoryData(BasePermission):
         if not request.user or not request.user.is_authenticated:
             return False
 
-        # Tanto Admin como Operario pueden acceder al historial
-        return request.user.rol in ['Admin', 'Operario']
+        try:
+            gestor_user = User.objects.get(auth_user=request.user)
+            # Tanto Admin como Operario pueden acceder al historial
+            return gestor_user.rol in ['Admin', 'Operario']
+        except User.DoesNotExist:
+            return False
 
 
 class IsAdminOrOperator(BasePermission):
@@ -165,4 +202,11 @@ class IsAdminOrOperator(BasePermission):
     Permiso personalizado para usuarios con rol 'Admin' o 'Operario'
     """
     def has_permission(self, request, view):
-        return request.user.is_authenticated and request.user.rol in ['Admin', 'Operario']
+        if not request.user or not request.user.is_authenticated:
+            return False
+
+        try:
+            gestor_user = User.objects.get(auth_user=request.user)
+            return gestor_user.rol in ['Admin', 'Operario']
+        except User.DoesNotExist:
+            return False

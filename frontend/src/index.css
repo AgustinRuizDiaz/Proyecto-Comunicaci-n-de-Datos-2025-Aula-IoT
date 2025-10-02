@@ -28,3 +28,257 @@
 .status-warning {
   @apply bg-yellow-500;
 }
+
+/* ==============================================
+   MOBILE-FIRST PWA STYLES
+   ============================================== */
+
+/* Asegurar área táctil mínima de 44px en todos los botones interactivos */
+@layer utilities {
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  .touch-button {
+    @apply touch-target flex items-center justify-center p-3 rounded-lg transition-all duration-200;
+  }
+
+  .touch-button:active {
+    @apply scale-95 bg-opacity-80;
+  }
+
+  .mobile-modal {
+    @apply fixed inset-0 z-50 bg-white md:relative md:inset-auto md:rounded-lg md:shadow-xl;
+  }
+
+  .mobile-modal-backdrop {
+    @apply fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden;
+  }
+}
+
+/* Mejorar el rendimiento del scroll en móviles */
+.mobile-scroll {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Prevenir zoom en inputs en iOS */
+@media screen and (max-width: 767px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Safe area para dispositivos con notch */
+@supports (padding: max(0px)) {
+  .safe-area-top {
+    padding-top: max(1rem, env(safe-area-inset-top));
+  }
+
+  .safe-area-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  .safe-area-left {
+    padding-left: max(1rem, env(safe-area-inset-left));
+  }
+
+  .safe-area-right {
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+}
+
+/* Animaciones mejoradas para móvil */
+@media (prefers-reduced-motion: no-preference) {
+  .mobile-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+
+  .mobile-fade-in {
+    animation: fadeIn 0.2s ease-in;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Estilos para virtual scrolling */
+.virtual-scroll-container {
+  height: 100%;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.virtual-scroll-item {
+  @apply touch-target;
+}
+
+/* Mejorar contraste y legibilidad en móvil */
+@media (max-width: 640px) {
+  .mobile-text {
+    @apply text-base leading-relaxed;
+  }
+
+  .mobile-title {
+    @apply text-xl font-semibold;
+  }
+
+  .mobile-subtitle {
+    @apply text-sm text-gray-600;
+  }
+}
+
+/* Estilos específicos para PWA */
+@media (display-mode: standalone) {
+  .pwa-fullscreen {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
+/* Indicadores de conexión mejorados */
+.connection-indicator {
+  @apply fixed top-4 right-4 z-50 flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium shadow-lg;
+}
+
+.connection-online {
+  @apply bg-green-100 text-green-800 border border-green-200;
+}
+
+.connection-offline {
+  @apply bg-red-100 text-red-800 border border-red-200 animate-pulse;
+}
+
+.connection-slow {
+  @apply bg-yellow-100 text-yellow-800 border border-yellow-200;
+}
+
+/* Pull to refresh styles */
+.pull-to-refresh-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.pull-indicator {
+  @apply flex items-center justify-center py-4 text-center;
+  background: linear-gradient(to bottom, #f8fafc, #ffffff);
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.pull-indicator.refreshing {
+  @apply animate-pulse;
+}
+
+.pull-arrow {
+  @apply transition-transform duration-200;
+  transform-origin: center;
+}
+
+/* Responsive breakpoints personalizados */
+.mobile-layout {
+  @apply block sm:hidden;
+}
+
+.tablet-layout {
+  @apply hidden sm:block lg:hidden;
+}
+
+.desktop-layout {
+  @apply hidden lg:block;
+}
+
+/* Cards responsive mejoradas */
+.mobile-card {
+  @apply bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4;
+}
+
+.mobile-card-header {
+  @apply flex items-center justify-between mb-3;
+}
+
+.mobile-card-title {
+  @apply text-lg font-semibold text-gray-900;
+}
+
+.mobile-card-subtitle {
+  @apply text-sm text-gray-500;
+}
+
+.mobile-card-body {
+  @apply text-gray-700;
+}
+
+/* Navegación móvil mejorada */
+.mobile-nav {
+  @apply fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.mobile-nav-item {
+  @apply flex-1 flex flex-col items-center justify-center p-2 min-h-[64px] transition-colors duration-200;
+}
+
+.mobile-nav-item.active {
+  @apply bg-blue-50 text-blue-600;
+}
+
+.mobile-nav-item:active {
+  @apply bg-gray-100;
+}
+
+/* Loading skeletons optimizados para móvil */
+.mobile-skeleton {
+  @apply animate-pulse bg-gray-200 rounded;
+}
+
+.mobile-skeleton-text {
+  @apply mobile-skeleton h-4 w-full mb-2;
+}
+
+.mobile-skeleton-title {
+  @apply mobile-skeleton h-6 w-3/4 mb-4;
+}
+
+.mobile-skeleton-avatar {
+  @apply mobile-skeleton h-10 w-10 rounded-full;
+}
+
+/* Mejoras de accesibilidad para móvil */
+@media (max-width: 640px) {
+  /* Aumentar tamaño de touch targets automáticamente */
+  button, a[role="button"], .btn {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 12px 16px;
+  }
+
+  /* Mejor espaciado para navegación táctil */
+  .mobile-spacing {
+    margin: 8px 0;
+  }
+
+  /* Textos más grandes y legibles */
+  .mobile-readable {
+    font-size: 16px;
+    line-height: 1.5;
+  }
+}

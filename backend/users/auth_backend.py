@@ -8,24 +8,34 @@ class CustomAuthBackend(ModelBackend):
     Custom authentication backend that supports login with legajo field
     """
 
-    def authenticate(self, request, legajo=None, password=None, **kwargs):
-        if legajo is None or password is None:
+    def authenticate(self, request, username=None, password=None, **kwargs):
+        print(f"🔐 CustomAuthBackend.authenticate called with username={username}")
+        if username is None or password is None:
+            print("❌ Username or password is None")
             return None
 
         try:
-            # Buscar usuario por legajo
-            user = User.objects.get(legajo=legajo, is_active=True)
+            # Buscar usuario por legajo en el modelo personalizado
+            gestor_user = User.objects.get(legajo=username)
+            print(f"✅ Found gestor_user: {gestor_user.legajo}")
         except User.DoesNotExist:
+            print(f"❌ User with legajo {username} not found")
             return None
 
-        # Verificar contraseña
-        if user.check_password(password):
-            return user
+        # Verificar contraseña con el usuario de Django auth
+        print(f"🔍 Checking password for auth_user: {gestor_user.auth_user.username}")
+        if gestor_user.auth_user.check_password(password):
+            print(f"✅ Password correct for user: {gestor_user.auth_user.username}")
+            return gestor_user.auth_user
+        else:
+            print(f"❌ Password incorrect for user: {gestor_user.auth_user.username}")
 
         return None
 
     def get_user(self, user_id):
         try:
-            return User.objects.get(pk=user_id, is_active=True)
-        except User.DoesNotExist:
+            # El user_id es del AuthUser, no del modelo personalizado
+            from django.contrib.auth.models import User as AuthUser
+            return AuthUser.objects.get(pk=user_id)
+        except AuthUser.DoesNotExist:
             return None

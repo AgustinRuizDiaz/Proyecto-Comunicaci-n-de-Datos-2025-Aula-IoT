@@ -163,13 +163,40 @@ GestorAulas/
 | Modelo User personalizado | ✅ | ✅ | **Completo** |
 | Login con JWT | ✅ | ✅ | **Completo** |
 | Logout seguro | ✅ | ✅ | **Completo** |
-| Permisos por roles | ✅ | ✅ | **Completo** |
+| **Sistema de Roles y Permisos RBAC** | ✅ | ✅ | **Completo** |
+| **Gestión completa de usuarios** | ✅ | ✅ | **Completo** |
 | Rutas protegidas | ✅ | ✅ | **Completo** |
 | Persistencia de sesión | ✅ | ✅ | **Completo** |
 | Auto-logout inactividad | ✅ | ✅ | **Completo** |
 | Material-UI instalado | ✅ | ✅ | **Completo** |
 | Página acceso denegado | ✅ | ✅ | **Completo** |
 | Diseño institucional | ✅ | ✅ | **Completo** |
+
+## 🔐 Sistema de Roles y Permisos (RBAC)
+
+### Roles Disponibles
+- **👑 Administrador (Admin)**: Acceso completo a todas las funcionalidades
+- **👤 Operario (Operario)**: Acceso limitado según responsabilidades
+
+### Permisos por Rol
+
+| Recurso | Admin | Operario |
+|---------|-------|----------|
+| **Usuarios** | ✅ CRUD completo | ❌ Solo lectura activos |
+| **Aulas** | ✅ CRUD completo | ❌ Solo lectura |
+| **Sensores** | ✅ CRUD completo | ✅ CRUD completo |
+| **Historial** | ✅ CRUD completo | ✅ CRUD completo |
+| **Panel Admin** | ✅ Acceso completo | ❌ No visible |
+| **Panel Operario** | ❌ No visible | ✅ Acceso completo |
+
+### Funcionalidades RBAC
+- ✅ **Autenticación JWT** con roles personalizados
+- ✅ **Permisos granulares** en ViewSets Django
+- ✅ **Serializers diferenciados** según rol del usuario
+- ✅ **HOC para acceso condicional** en React
+- ✅ **Rutas protegidas** por rol
+- ✅ **UI adaptativa** según permisos del usuario
+- ✅ **Navegación inteligente** en navbar
 
 ## 🎯 APIs REST Disponibles
 
@@ -312,6 +339,25 @@ npm run build
 - Asignar sensores a aulas
 - Monitorear estado de ocupación
 
+### Gestión de Usuarios (Solo Administradores)
+- **Página dedicada** de gestión de usuarios en `/admin/users`
+- **Búsqueda en tiempo real** por legajo
+- **Filtros avanzados** por rol y estado
+- **Modal responsivo** para crear/editar usuarios
+- **Validación de formularios** con mensajes de error claros
+- **Confirmación de eliminación** con prevención de auto-eliminación
+- **Indicadores visuales** de roles con badges diferenciados
+- **Paginación automática** para grandes listas de usuarios
+
+#### Funcionalidades del Módulo de Usuarios
+- ✅ **CRUD completo** de usuarios
+- ✅ **Validación de legajos únicos** a nivel de base de datos
+- ✅ **Validación de contraseñas seguras** usando Django's validators
+- ✅ **Prevención de auto-eliminación** de cuentas
+- ✅ **Cambio de contraseña** para otros usuarios
+- ✅ **Estadísticas de usuarios** (total, activos, por rol)
+- ✅ **Diseño mobile-first** con cards en móvil y tabla en desktop
+
 ### Sensores IoT
 - Configuración de sensores
 - Visualización de datos en tiempo real
@@ -330,18 +376,27 @@ npm run build
 - `POST /api/auth/register/` - Registrar usuario
 - `GET /api/auth/user/` - Obtener usuario actual
 
-### Aulas
-- `GET /api/classrooms/` - Listar aulas
-- `POST /api/classrooms/` - Crear aula
-- `GET /api/classrooms/{id}/` - Detalle de aula
-- `PUT /api/classrooms/{id}/` - Actualizar aula
-- `DELETE /api/classrooms/{id}/` - Eliminar aula
+### Gestión de Usuarios (Solo Administradores)
+- `GET /api/users/` - Listar usuarios con filtros y búsqueda
+- `POST /api/users/` - Crear nuevo usuario
+- `GET /api/users/{id}/` - Detalle de usuario
+- `PUT /api/users/{id}/` - Actualizar usuario
+- `DELETE /api/users/{id}/` - Eliminar usuario
+- `POST /api/users/{id}/change_password/` - Cambiar contraseña de usuario
+- `GET /api/users/stats/` - Estadísticas de usuarios
+
+### Parámetros de Consulta para Usuarios
+- `search`: Buscar por legajo
+- `rol`: Filtrar por rol (Admin/Operario)
+- `is_active`: Filtrar por estado (true/false)
+- `ordering`: Ordenar por campo (-date_joined, legajo)
+- `page`: Número de página para paginación
+- `page_size`: Tamaño de página (máximo 100)
 
 ### Sensores
 - `GET /api/sensors/` - Listar sensores
 - `POST /api/sensors/` - Crear sensor
 - `GET /api/sensors/{id}/` - Detalle de sensor
-- `GET /api/sensors/{id}/data/` - Datos del sensor
 
 ### Historial
 - `GET /api/history/` - Historial general

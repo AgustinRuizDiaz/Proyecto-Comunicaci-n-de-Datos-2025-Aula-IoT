@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import {
   Box,
@@ -60,7 +60,7 @@ const Login = () => {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
+          backgroundColor: '#f8fafc',
         }}
       >
         <Paper
@@ -73,8 +73,7 @@ const Login = () => {
             width: '100%',
             maxWidth: 400,
             borderRadius: 3,
-            background: 'rgba(255, 255, 255, 0.95)',
-            backdropFilter: 'blur(10px)',
+            backgroundColor: 'white',
           }}
         >
           <Avatar sx={{ m: 1, bgcolor: '#1e40af', width: 56, height: 56 }}>
@@ -151,14 +150,14 @@ const Login = () => {
                 mt: 3,
                 mb: 2,
                 py: 1.5,
-                background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
+                backgroundColor: '#1e40af',
                 fontSize: '1.1rem',
                 fontWeight: 'bold',
                 textTransform: 'none',
                 borderRadius: 2,
                 boxShadow: '0 4px 15px rgba(30, 64, 175, 0.3)',
                 '&:hover': {
-                  background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)',
+                  backgroundColor: '#1e3a8a',
                   boxShadow: '0 6px 20px rgba(30, 64, 175, 0.4)',
                 },
                 '&:disabled': {
@@ -172,26 +171,13 @@ const Login = () => {
 
             <Box sx={{ textAlign: 'center', mt: 2 }}>
               <Typography variant="body2" sx={{ color: '#64748b' }}>
-                ¿No tienes una cuenta?{' '}
-                <Link
-                  to="/register"
-                  style={{
-                    color: '#1e40af',
-                    textDecoration: 'none',
-                    fontWeight: 'bold',
-                    transition: 'color 0.2s',
-                  }}
-                  onMouseEnter={(e) => e.target.style.color = '#3b82f6'}
-                  onMouseLeave={(e) => e.target.style.color = '#1e40af'}
-                >
-                  Regístrate aquí
-                </Link>
+                Sistema de Gestión de Aulas Universitarias
               </Typography>
             </Box>
           </Box>
         </Paper>
 
-        <Typography variant="body2" sx={{ mt: 3, color: 'rgba(255, 255, 255, 0.8)', textAlign: 'center' }}>
+        <Typography variant="body2" sx={{ mt: 3, color: '#64748b', textAlign: 'center' }}>
           © 2025 Universidad - Sistema de Gestión de Aulas
         </Typography>
       </Box>

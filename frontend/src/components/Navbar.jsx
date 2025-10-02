@@ -29,7 +29,7 @@ const Navbar = () => {
         <Typography
           variant="h6"
           component={Link}
-          to={user?.rol === 'Admin' ? '/admin/dashboard' : '/operator/dashboard'}
+          to="/classrooms"
           sx={{
             flexGrow: 1,
             textDecoration: 'none',
@@ -43,19 +43,6 @@ const Navbar = () => {
         </Typography>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          {/* Dashboard link - different for each role */}
-          <Button
-            component={Link}
-            to={user?.rol === 'Admin' ? '/admin/dashboard' : '/operator/dashboard'}
-            sx={{
-              color: 'white',
-              '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.1)' },
-              borderRadius: 2
-            }}
-          >
-            Dashboard
-          </Button>
-
           {/* Common navigation for all authenticated users */}
           <Button
             component={Link}
@@ -101,11 +88,10 @@ const Navbar = () => {
               sx={{
                 color: 'white',
                 '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.1)' },
-                borderRadius: 2,
-                border: '1px solid rgba(255, 255, 255, 0.3)'
+                borderRadius: 2
               }}
             >
-              👑 Gestión
+              USUARIOS
             </Button>
           </AdminOnly>
 

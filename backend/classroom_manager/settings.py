@@ -40,6 +40,9 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'corsheaders',
     'channels',
+    'django_filters',  # Added for advanced filtering
+    # 'django_celery_beat',  # Commented out until Celery is properly configured
+    # 'django_celery_results',  # Commented out until Celery is properly configured
     # Local apps
     'users',
     'classrooms',
@@ -139,13 +142,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Django REST Framework
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.BasicAuthentication',
-    ],
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
+        'rest_framework.permissions.AllowAny',  # Permitir acceso por defecto, usar permisos específicos en ViewSets
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20
@@ -195,9 +193,47 @@ CORS_ALLOW_HEADERS = [
 # Channels
 ASGI_APPLICATION = 'classroom_manager.asgi.application'
 
-# Channel Layers (using in-memory for development)
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels.layers.InMemoryChannelLayer'
+# Channel Layers (Redis para producción, memoria para desarrollo)
+if DEBUG:
+    # Desarrollo: Usar memoria para simplicidad
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels.layers.InMemoryChannelLayer'
+        }
     }
-}
+else:
+    # Producción: Usar Redis para escalabilidad
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                'hosts': [os.getenv('REDIS_URL', 'redis://127.0.0.1:6379/1')],
+            },
+        },
+    }
+
+# Importar configuración de cache
+from .cache_settings import CACHES
+
+# Celery Configuration - Commented out until Celery is properly configured
+# CELERY_BROKER_URL = os.getenv('REDIS_URL', 'redis://127.0.0.1:6379/0')
+# CELERY_RESULT_BACKEND = os.getenv('REDIS_URL', 'redis://127.0.0.1:6379/0')
+# CELERY_ACCEPT_CONTENT = ['json']
+# CELERY_TASK_SERIALIZER = 'json'
+# CELERY_RESULT_SERIALIZER = 'json'
+# CELERY_TIMEZONE = TIME_ZONE
+
+# Celery Beat Settings para tareas programadas - Commented out until Celery is properly configured
+# CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+
+# Configuración adicional para producción
+if not DEBUG:
+    # Seguridad adicional para producción
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_BROWSER_XSS_FILTER = True
+    X_FRAME_OPTIONS = 'DENY'
+    SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
