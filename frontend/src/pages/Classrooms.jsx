@@ -28,7 +28,6 @@ const Classrooms = () => {
   const [aulas, setAulas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' o 'list'
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -140,7 +139,7 @@ const Classrooms = () => {
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
           >
             <PlusIcon />
-            Nueva Aula
+            <span className="hidden md:inline">Nueva Aula</span>
           </button>
         )}
       </div>
@@ -176,22 +175,6 @@ const Classrooms = () => {
               <option value="offline">Fuera de línea</option>
             </select>
           </div>
-
-          {/* Toggle vista */}
-          <div className="flex border border-gray-300 rounded-lg overflow-hidden">
-            <button
-              onClick={() => setViewMode('grid')}
-              className={`px-4 py-2 ${viewMode === 'grid' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
-            >
-              Grid
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`px-4 py-2 ${viewMode === 'list' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
-            >
-              Lista
-            </button>
-          </div>
         </div>
       </div>
 
@@ -216,26 +199,14 @@ const Classrooms = () => {
               ? 'No se encontraron aulas que coincidan con los filtros aplicados.'
               : 'Comienza creando tu primera aula para gestionar sus dispositivos.'}
           </p>
-          {user?.rol === 'Admin' && !searchTerm && !statusFilter && (
-            <button
-              onClick={handleCreateAula}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg"
-            >
-              Crear Primera Aula
-            </button>
-          )}
         </div>
       ) : (
-        <div className={
-          viewMode === 'grid'
-            ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'
-            : 'space-y-4'
-        }>
+        <div className="space-y-4">
           {aulas.map((aula) => (
             <AulaCard
               key={aula.id}
               aula={aula}
-              viewMode={viewMode}
+              viewMode="list"
               onEdit={() => handleEditAula(aula)}
               onDelete={() => handleDeleteAula(aula.id)}
               onCheckConnectivity={() => handleCheckConnectivity(aula.id)}

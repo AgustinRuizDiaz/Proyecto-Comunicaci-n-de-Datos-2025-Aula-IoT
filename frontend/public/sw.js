@@ -9,7 +9,7 @@ const IMAGE_CACHE = `gestoraulas-images-${CACHE_VERSION}`;
 const STATIC_ASSETS = [
   '/',
   '/offline.html',
-  '/manifest.json'
+  '/manifest.webmanifest'  // ← Cambiado de manifest.json a manifest.webmanifest
 ];
 
 // Recursos que pueden ser cacheados dinámicamente

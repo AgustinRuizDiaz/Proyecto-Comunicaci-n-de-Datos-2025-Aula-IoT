@@ -58,18 +58,6 @@ const Navbar = () => {
 
           <Button
             component={Link}
-            to="/sensors"
-            sx={{
-              color: 'white',
-              '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.1)' },
-              borderRadius: 2
-            }}
-          >
-            Sensores
-          </Button>
-
-          <Button
-            component={Link}
             to="/history"
             sx={{
               color: 'white',

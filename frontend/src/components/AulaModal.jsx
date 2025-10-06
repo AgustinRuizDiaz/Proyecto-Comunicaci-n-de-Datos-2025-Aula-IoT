@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { XMarkIcon } from '@heroicons/react/24/outline';
+
+// Ícono X personalizado como alternativa a Heroicons
+const XMarkIcon = () => (
+  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+  </svg>
+);
 
 const AulaModal = ({ aula, onClose, onSave }) => {
   const [formData, setFormData] = useState({

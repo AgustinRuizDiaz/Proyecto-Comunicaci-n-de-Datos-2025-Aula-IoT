@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
+import { authService } from '../services/api';
 
 const AuthContext = createContext();
 
@@ -7,69 +7,93 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [connectionError, setConnectionError] = useState(null);
 
   // Función de logout
   const logout = async () => {
     try {
-      const refreshToken = localStorage.getItem('refresh_token');
-      if (refreshToken) {
-        await axios.post('http://127.0.0.1:64354/api/users/logout/', {
-          refresh_token: refreshToken
-        });
-      }
+      await authService.logout();
     } catch (error) {
       console.error('Error durante logout:', error);
     } finally {
-      // Limpiar datos locales
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      localStorage.removeItem('user');
+      // Limpiar datos locales (solo en navegador)
+      if (typeof window !== 'undefined' && localStorage) {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('user');
+      }
 
       setUser(null);
       setIsAuthenticated(false);
+      setConnectionError(null);
     }
   };
 
   // Función de login
   const login = async (legajo, password) => {
     try {
-      console.log('🔐 Iniciando login directo en AuthContext con:', { legajo });
-      const response = await axios.post('http://localhost:8000/test-endpoint/', {
+      console.log('🔐 Iniciando login con:', { legajo });
+      const response = await authService.login({
         legajo,
         password
       });
-      console.log('✅ Login directo response recibido:', response.data);
 
-      const { user, tokens } = response.data;
+      console.log('✅ Login response recibido:', response.data);
 
-      // Guardar tokens y datos del usuario
-      localStorage.setItem('access_token', tokens.access);
-      localStorage.setItem('refresh_token', tokens.refresh);
-      localStorage.setItem('user', JSON.stringify(user));
+      const { usuario: userData, token } = response.data.data;
 
-      setUser(user);
+      // Guardar token y datos del usuario (solo en navegador)
+      if (typeof window !== 'undefined' && localStorage) {
+        localStorage.setItem('access_token', token);
+        localStorage.setItem('user', JSON.stringify(userData));
+      }
+
+      setUser(userData);
       setIsAuthenticated(true);
+      setConnectionError(null);
 
-      console.log('✅ Usuario autenticado exitosamente:', user.legajo);
+      console.log('✅ Usuario autenticado exitosamente:', userData.legajo);
       return { success: true };
     } catch (error) {
-      console.error('❌ Error durante login directo:', error);
-      console.error('❌ Error response:', error.response?.data);
+      console.error('❌ Error durante login:', error);
+      console.error('❌ Error completo:', {
+        message: error.message,
+        code: error.code,
+        response: error.response,
+        responseData: error.response?.data,
+        status: error.response?.status,
+        headers: error.response?.headers
+      });
+
+      // Verificar si es un error de conexión
+      if (error.code === 'NETWORK_ERROR' || error.message.includes('Network Error') || !error.response) {
+        setConnectionError('No se pudo establecer conexión con el servidor. Algunas funciones pueden no estar disponibles hasta que se restablezca la conexión.');
+      }
+
       return {
         success: false,
-        error: error.response?.data?.error || 'Error durante el login'
+        error: error.response?.data?.error || error.message || 'Error durante el login'
       };
     }
   };
 
   // Verificar autenticación al cargar
   useEffect(() => {
-    const token = localStorage.getItem('access_token');
-    const userData = localStorage.getItem('user');
+    // Solo ejecutar en el navegador
+    if (typeof window !== 'undefined' && localStorage) {
+      const token = localStorage.getItem('access_token');
+      const userData = localStorage.getItem('user');
 
-    if (token && userData) {
-      setUser(JSON.parse(userData));
-      setIsAuthenticated(true);
+      if (token && userData) {
+        try {
+          setUser(JSON.parse(userData));
+          setIsAuthenticated(true);
+        } catch (error) {
+          console.error('Error parsing user data:', error);
+          // Limpiar datos corruptos
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('user');
+        }
+      }
     }
 
     setLoading(false);
@@ -81,8 +105,9 @@ export const AuthProvider = ({ children }) => {
     logout,
     isAuthenticated,
     loading,
-    isAdmin: user?.rol === 'Admin',
-    isOperator: user?.rol === 'Operario'
+    connectionError,
+    isAdmin: user?.rol === 'administrador',
+    isOperator: user?.rol === 'operario'
   };
 
   return (

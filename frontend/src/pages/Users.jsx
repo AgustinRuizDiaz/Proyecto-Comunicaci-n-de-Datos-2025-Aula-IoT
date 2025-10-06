@@ -16,11 +16,12 @@ const Users = () => {
   const [editingUser, setEditingUser] = useState(null);
   const [formData, setFormData] = useState({
     legajo: '',
+    name: '',
+    lastname: '',
     password: '',
     confirmPassword: '',
     rol: 'Operario',
-    is_active: true,
-    is_staff: false
+    is_active: true
   });
   const [formErrors, setFormErrors] = useState({});
   const [deleteConfirm, setDeleteConfirm] = useState(null);
@@ -107,6 +108,14 @@ const Users = () => {
       errors.legajo = 'El legajo debe tener entre 3 y 20 caracteres alfanuméricos';
     }
 
+    if (!formData.name.trim()) {
+      errors.name = 'El nombre es requerido';
+    }
+
+    if (!formData.lastname.trim()) {
+      errors.lastname = 'El apellido es requerido';
+    }
+
     if (!editingUser) { // Only for new users
       if (!formData.password) {
         errors.password = 'La contraseña es requerida';
@@ -169,11 +178,12 @@ const Users = () => {
     setEditingUser(user);
     setFormData({
       legajo: user.legajo,
+      name: user.name || '',
+      lastname: user.lastname || '',
       password: '',
       confirmPassword: '',
       rol: user.rol,
-      is_active: user.is_active,
-      is_staff: user.is_staff || false
+      is_active: user.is_active
     });
     setFormErrors({});
     setShowCreateModal(true);
@@ -195,11 +205,12 @@ const Users = () => {
   const resetForm = () => {
     setFormData({
       legajo: '',
+      name: '',
+      lastname: '',
       password: '',
       confirmPassword: '',
       rol: 'Operario',
-      is_active: true,
-      is_staff: false
+      is_active: true
     });
     setFormErrors({});
   };
@@ -236,7 +247,7 @@ const Users = () => {
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
-              <span>Nuevo Usuario</span>
+              <span className="hidden md:inline">Nuevo Usuario</span>
             </button>
           </AdminOnly>
         </div>
@@ -331,6 +342,9 @@ const Users = () => {
                           </div>
                           <div className="ml-4">
                             <div className="text-sm font-medium text-gray-900">
+                              {user.nombre} {user.apellido}
+                            </div>
+                            <div className="text-sm text-gray-500">
                               {user.legajo}
                             </div>
                           </div>
@@ -393,9 +407,9 @@ const Users = () => {
                         </span>
                       </div>
                       <div>
-                        <h3 className="text-sm font-medium text-gray-900">{user.legajo}</h3>
+                        <h3 className="text-sm font-medium text-gray-900">{user.nombre} {user.apellido}</h3>
                         <p className="text-xs text-gray-500">
-                          {new Date(user.date_joined).toLocaleDateString()}
+                          {user.legajo} • {new Date(user.date_joined).toLocaleDateString()}
                         </p>
                       </div>
                     </div>
@@ -493,7 +507,7 @@ const Users = () => {
         {/* Create/Edit Modal */}
         {showCreateModal && (
           <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="relative top-2 mx-auto p-3 border w-11/12 max-w-sm shadow-lg rounded-md bg-white sm:top-20 sm:p-5 sm:w-96 sm:max-w-md">
               <div className="mt-3">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">
                   {editingUser ? 'Editar Usuario' : 'Crear Nuevo Usuario'}
@@ -517,6 +531,44 @@ const Users = () => {
                     />
                     {formErrors.legajo && (
                       <p className="mt-1 text-sm text-red-600">{formErrors.legajo}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Nombre *
+                    </label>
+                    <input
+                      type="text"
+                      name="nombre"
+                      value={formData.nombre}
+                      onChange={handleInputChange}
+                      className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        formErrors.nombre ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                      placeholder="Nombre del usuario"
+                    />
+                    {formErrors.nombre && (
+                      <p className="mt-1 text-sm text-red-600">{formErrors.nombre}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Apellido *
+                    </label>
+                    <input
+                      type="text"
+                      name="apellido"
+                      value={formData.apellido}
+                      onChange={handleInputChange}
+                      className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        formErrors.apellido ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                      placeholder="Apellido del usuario"
+                    />
+                    {formErrors.apellido && (
+                      <p className="mt-1 text-sm text-red-600">{formErrors.apellido}</p>
                     )}
                   </div>
 
@@ -632,19 +684,6 @@ const Users = () => {
                     />
                     <label className="ml-2 block text-sm text-gray-900">
                       Usuario activo
-                    </label>
-                  </div>
-
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      name="is_staff"
-                      checked={formData.is_staff}
-                      onChange={handleInputChange}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    />
-                    <label className="ml-2 block text-sm text-gray-900">
-                      Acceso administrativo
                     </label>
                   </div>
 

@@ -44,10 +44,10 @@ const ProtectedRoute = ({
   // Si no tiene permisos para esta ruta, redirigir según el rol del usuario
   if (!hasAccess) {
     // Redirigir a rutas apropiadas según el rol
-    if (user.rol === 'Admin') {
-      return <Navigate to="/admin/dashboard" replace />;
-    } else if (user.rol === 'Operario') {
-      return <Navigate to="/operator/dashboard" replace />;
+    if (user.rol === 'administrador') {
+      return <Navigate to="/admin/users" replace />;
+    } else if (user.rol === 'operario') {
+      return <Navigate to="/classrooms" replace />;
     } else {
       return <Navigate to="/unauthorized" replace />;
     }
@@ -60,7 +60,7 @@ const ProtectedRoute = ({
  * Ruta protegida solo para administradores
  */
 export const AdminRoute = ({ children }) => (
-  <ProtectedRoute allowedRoles={['Admin']}>
+  <ProtectedRoute allowedRoles={['administrador']}>
     {children}
   </ProtectedRoute>
 );
@@ -69,7 +69,7 @@ export const AdminRoute = ({ children }) => (
  * Ruta protegida solo para operarios
  */
 export const OperatorRoute = ({ children }) => (
-  <ProtectedRoute allowedRoles={['Operario']}>
+  <ProtectedRoute allowedRoles={['operario']}>
     {children}
   </ProtectedRoute>
 );
@@ -78,7 +78,7 @@ export const OperatorRoute = ({ children }) => (
  * Ruta protegida para ambos roles (Admin y Operario)
  */
 export const AuthenticatedRoute = ({ children }) => (
-  <ProtectedRoute allowedRoles={['Admin', 'Operario']}>
+  <ProtectedRoute allowedRoles={['administrador', 'operario']}>
     {children}
   </ProtectedRoute>
 );

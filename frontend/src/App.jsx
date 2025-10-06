@@ -1,11 +1,13 @@
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
-import { AuthProvider } from './contexts/AuthContext'
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { SocketProvider } from './contexts/SocketContext'
 import { ToastProvider } from './components/Toast'
+import ConnectionStatusBanner from './components/ConnectionStatusBanner'
+import CacheCleaner from './components/CacheCleaner'
 import Navbar from './components/Navbar'
 import BottomNavigation from './components/BottomNavigation'
 import Classrooms from './pages/Classrooms'
-import Sensors from './pages/Sensors'
 import History from './pages/History'
 import Users from './pages/Users'
 import Login from './pages/Login'
@@ -15,34 +17,45 @@ import ProtectedRoute, { AdminRoute, OperatorRoute, AuthenticatedRoute } from '.
 // Component to handle conditional rendering of navbar and bottom nav
 const AppContent = () => {
   const location = useLocation()
+  const [isMobile, setIsMobile] = useState(false)
+  const { isAuthenticated } = useAuth()
 
   // Hide navbar and bottom navigation on login and unauthorized pages
   const hideNavigation = location.pathname === '/login' || location.pathname === '/unauthorized'
 
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+
+    // Check initially
+    checkMobile()
+
+    // Add resize listener
+    window.addEventListener('resize', checkMobile)
+
+    // Cleanup
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {!hideNavigation && <Navbar />}
+      <ConnectionStatusBanner />
+      {!hideNavigation && !isMobile && <Navbar />}
       <main className={`container mx-auto px-4 py-8 pb-20 md:pb-8 ${hideNavigation ? 'pt-0' : ''}`}>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
 
-          {/* Main application routes - redirect root to classrooms */}
+          {/* Root route - redirect based on authentication status */}
           <Route path="/" element={
-            <AuthenticatedRoute>
-              <Classrooms />
-            </AuthenticatedRoute>
+            isAuthenticated ? <Navigate to="/classrooms" replace /> : <Navigate to="/login" replace />
           } />
 
-          {/* Role-based feature routes */}
+          {/* Main application routes */}
           <Route path="/classrooms" element={
             <AuthenticatedRoute>
               <Classrooms />
-            </AuthenticatedRoute>
-          } />
-          <Route path="/sensors" element={
-            <AuthenticatedRoute>
-              <Sensors />
             </AuthenticatedRoute>
           } />
           <Route path="/history" element={
@@ -56,16 +69,6 @@ const AppContent = () => {
             <AdminRoute>
               <Users />
             </AdminRoute>
-          } />
-
-          {/* Operator-only sensor management */}
-          <Route path="/operator/sensors" element={
-            <OperatorRoute>
-              <div className="p-8">
-                <h1 className="text-3xl font-bold text-gray-900 mb-6">Mis Sensores</h1>
-                <p className="text-gray-600">Aquí irá la gestión de sensores asignados (solo para operarios).</p>
-              </div>
-            </OperatorRoute>
           } />
         </Routes>
       </main>
