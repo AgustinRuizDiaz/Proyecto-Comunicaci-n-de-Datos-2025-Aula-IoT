@@ -9,19 +9,17 @@ const Users = () => {
   const [pagination, setPagination] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
-    rol: '',
-    is_active: ''
+    rol: ''
   });
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [formData, setFormData] = useState({
     legajo: '',
-    name: '',
-    lastname: '',
+    nombre: '',
+    apellido: '',
     password: '',
     confirmPassword: '',
-    rol: 'Operario',
-    is_active: true
+    rol: 'Operario'
   });
   const [formErrors, setFormErrors] = useState({});
   const [deleteConfirm, setDeleteConfirm] = useState(null);
@@ -178,12 +176,11 @@ const Users = () => {
     setEditingUser(user);
     setFormData({
       legajo: user.legajo,
-      name: user.name || '',
-      lastname: user.lastname || '',
+      nombre: user.nombre || '',
+      apellido: user.apellido || '',
       password: '',
       confirmPassword: '',
-      rol: user.rol,
-      is_active: user.is_active
+      rol: user.rol
     });
     setFormErrors({});
     setShowCreateModal(true);
@@ -205,12 +202,11 @@ const Users = () => {
   const resetForm = () => {
     setFormData({
       legajo: '',
-      name: '',
-      lastname: '',
+      nombre: '',
+      apellido: '',
       password: '',
       confirmPassword: '',
-      rol: 'Operario',
-      is_active: true
+      rol: 'Operario'
     });
     setFormErrors({});
   };
@@ -254,9 +250,9 @@ const Users = () => {
 
         {/* Search and Filters */}
         <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Search */}
-            <div className="md:col-span-2">
+            <div className="md:col-span-1">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Buscar por Legajo
               </label>
@@ -282,20 +278,6 @@ const Users = () => {
                 <option value="Operario">Operario</option>
               </select>
             </div>
-
-            {/* Status Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Estado</label>
-              <select
-                value={filters.is_active}
-                onChange={(e) => handleFilterChange('is_active', e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Todos los estados</option>
-                <option value="true">Activo</option>
-                <option value="false">Inactivo</option>
-              </select>
-            </div>
           </div>
         </div>
 
@@ -316,15 +298,6 @@ const Users = () => {
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Rol
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Estado
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Fecha de Creación
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Acciones
                     </th>
                   </tr>
                 </thead>
@@ -359,36 +332,6 @@ const Users = () => {
                           {user.rol === 'Admin' ? '👑 Admin' : '👤 Operario'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          user.is_active
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
-                        }`}>
-                          {user.is_active ? '✓ Activo' : '✗ Inactivo'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(user.date_joined).toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex space-x-2">
-                          <AdminOnly>
-                            <button
-                              onClick={() => handleEdit(user)}
-                              className="text-indigo-600 hover:text-indigo-900"
-                            >
-                              Editar
-                            </button>
-                            <button
-                              onClick={() => setDeleteConfirm(user)}
-                              className="text-red-600 hover:text-red-900"
-                            >
-                              Eliminar
-                            </button>
-                          </AdminOnly>
-                        </div>
-                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -409,7 +352,7 @@ const Users = () => {
                       <div>
                         <h3 className="text-sm font-medium text-gray-900">{user.nombre} {user.apellido}</h3>
                         <p className="text-xs text-gray-500">
-                          {user.legajo} • {new Date(user.date_joined).toLocaleDateString()}
+                          {user.legajo}
                         </p>
                       </div>
                     </div>
@@ -420,13 +363,6 @@ const Users = () => {
                           : 'bg-green-100 text-green-800'
                       }`}>
                         {user.rol === 'Admin' ? '👑 Admin' : '👤 Operario'}
-                      </span>
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        user.is_active
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {user.is_active ? '✓ Activo' : '✗ Inactivo'}
                       </span>
                     </div>
                   </div>
@@ -672,19 +608,6 @@ const Users = () => {
                     {formErrors.rol && (
                       <p className="mt-1 text-sm text-red-600">{formErrors.rol}</p>
                     )}
-                  </div>
-
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      name="is_active"
-                      checked={formData.is_active}
-                      onChange={handleInputChange}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    />
-                    <label className="ml-2 block text-sm text-gray-900">
-                      Usuario activo
-                    </label>
                   </div>
 
                   <div className="flex justify-end space-x-3 pt-4">
