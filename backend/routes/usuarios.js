@@ -24,22 +24,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /api/usuarios/stats - Obtener estadísticas de usuarios (solo administradores)
-router.get('/stats', async (req, res) => {
-  try {
-    const stats = await Usuario.getStats();
-    res.json({
-      success: true,
-      data: stats
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
-
 // GET /api/usuarios/rol/:rol - Obtener usuarios por rol (solo administradores)
 router.get('/rol/:rol', async (req, res) => {
   try {
@@ -94,22 +78,13 @@ router.get('/:id', async (req, res) => {
 // POST /api/usuarios - Crear nuevo usuario (solo administradores)
 router.post('/', async (req, res) => {
   try {
-    const { legajo, nombre, apellido, email, password, rol } = req.body;
+    const { legajo, nombre, apellido, password, rol } = req.body;
 
     // Validaciones básicas
-    if (!legajo || !nombre || !apellido || !email || !password) {
+    if (!legajo || !nombre || !apellido || !password) {
       return res.status(400).json({
         success: false,
-        error: 'Todos los campos son requeridos: legajo, nombre, apellido, email, password'
-      });
-    }
-
-    // Validar formato de email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Formato de email inválido'
+        error: 'Todos los campos son requeridos: legajo, nombre, apellido, password'
       });
     }
 
@@ -133,7 +108,6 @@ router.post('/', async (req, res) => {
       legajo: legajo.trim(),
       nombre: nombre.trim(),
       apellido: apellido.trim(),
-      email: email.trim().toLowerCase(),
       password,
       rol: rol || 'operario'
     });
@@ -162,22 +136,13 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { nombre, apellido, email, rol, estado } = req.body;
+    const { nombre, apellido, rol } = req.body;
 
     // Validaciones básicas
-    if (!nombre || !apellido || !email) {
+    if (!nombre || !apellido) {
       return res.status(400).json({
         success: false,
-        error: 'Nombre, apellido y email son requeridos'
-      });
-    }
-
-    // Validar formato de email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Formato de email inválido'
+        error: 'Nombre y apellido son requeridos'
       });
     }
 
@@ -189,20 +154,10 @@ router.put('/:id', async (req, res) => {
       });
     }
 
-    // Validar estado
-    if (estado && !['activo', 'inactivo'].includes(estado)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Estado debe ser activo o inactivo'
-      });
-    }
-
     await Usuario.update(id, {
       nombre: nombre.trim(),
       apellido: apellido.trim(),
-      email: email.trim().toLowerCase(),
-      rol: rol || 'operario',
-      estado: estado || 'activo'
+      rol: rol || 'operario'
     });
 
     res.json({

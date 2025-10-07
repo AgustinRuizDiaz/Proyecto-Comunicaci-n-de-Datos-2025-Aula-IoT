@@ -77,39 +77,37 @@ class Database {
     });
   }
 
-  // Método para inicializar las tablas
-  async initialize() {
+  // Método para limpiar la base de datos y recrear solo usuarios
+  async cleanAndRecreate() {
     try {
-      // Crear tabla de aulas
+      // Eliminar tablas existentes si existen
+      await this.run(`DROP TABLE IF EXISTS dispositivos`);
+      await this.run(`DROP TABLE IF EXISTS aulas`);
+
+      // Recrear tabla de usuarios
       await this.run(`
-        CREATE TABLE IF NOT EXISTS aulas (
+        CREATE TABLE usuarios (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
+          legajo TEXT UNIQUE NOT NULL,
           nombre TEXT NOT NULL,
-          ubicacion TEXT NOT NULL,
-          capacidad INTEGER NOT NULL,
-          descripcion TEXT,
-          estado TEXT DEFAULT 'activa',
+          apellido TEXT NOT NULL,
+          password_hash TEXT NOT NULL,
+          rol TEXT DEFAULT 'operario' CHECK (rol IN ('administrador', 'operario')),
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
       `);
 
-      // Crear tabla de dispositivos IoT
-      await this.run(`
-        CREATE TABLE IF NOT EXISTS dispositivos (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          aula_id INTEGER NOT NULL,
-          tipo TEXT NOT NULL,
-          nombre TEXT NOT NULL,
-          descripcion TEXT,
-          estado TEXT DEFAULT 'activo',
-          configuracion TEXT,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (aula_id) REFERENCES aulas (id) ON DELETE CASCADE
-        )
-      `);
+      console.log('🧹 Base de datos limpiada y tabla usuarios recreada correctamente');
+    } catch (error) {
+      console.error('❌ Error limpiando la base de datos:', error);
+      throw error;
+    }
+  }
 
+  // Método para inicializar las tablas
+  async initialize() {
+    try {
       // Crear tabla de usuarios
       await this.run(`
         CREATE TABLE IF NOT EXISTS usuarios (
@@ -117,10 +115,8 @@ class Database {
           legajo TEXT UNIQUE NOT NULL,
           nombre TEXT NOT NULL,
           apellido TEXT NOT NULL,
-          email TEXT UNIQUE,
           password_hash TEXT NOT NULL,
           rol TEXT DEFAULT 'operario' CHECK (rol IN ('administrador', 'operario')),
-          estado TEXT DEFAULT 'activo',
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )

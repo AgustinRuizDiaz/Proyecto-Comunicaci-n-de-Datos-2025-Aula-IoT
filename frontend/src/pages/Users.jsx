@@ -106,12 +106,12 @@ const Users = () => {
       errors.legajo = 'El legajo debe tener entre 3 y 20 caracteres alfanuméricos';
     }
 
-    if (!formData.name.trim()) {
-      errors.name = 'El nombre es requerido';
+    if (!formData.nombre.trim()) {
+      errors.nombre = 'El nombre es requerido';
     }
 
-    if (!formData.lastname.trim()) {
-      errors.lastname = 'El apellido es requerido';
+    if (!formData.apellido.trim()) {
+      errors.apellido = 'El apellido es requerido';
     }
 
     if (!editingUser) { // Only for new users

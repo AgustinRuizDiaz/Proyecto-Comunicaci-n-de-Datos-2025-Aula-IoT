@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 
 class Usuario {
   // Crear un nuevo usuario
-  static async create({ legajo, nombre, apellido, email, password, rol = 'operario' }) {
+  static async create({ legajo, nombre, apellido, password, rol = 'operario' }) {
     try {
       // Verificar si el legajo ya existe
       const existingUser = await db.get(
@@ -21,9 +21,9 @@ class Usuario {
       const password_hash = await bcrypt.hash(password, saltRounds);
 
       const result = await db.run(
-        `INSERT INTO usuarios (legajo, nombre, apellido, email, password_hash, rol)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [legajo, nombre, apellido, email, password_hash, rol]
+        `INSERT INTO usuarios (legajo, nombre, apellido, password_hash, rol)
+         VALUES (?, ?, ?, ?, ?)`,
+        [legajo, nombre, apellido, password_hash, rol]
       );
 
       return result.lastID;
@@ -36,7 +36,7 @@ class Usuario {
   static async findByLegajo(legajo) {
     try {
       const usuario = await db.get(
-        `SELECT id, legajo, nombre, apellido, email, rol, estado, created_at
+        `SELECT id, legajo, nombre, apellido, rol
          FROM usuarios WHERE legajo = ?`,
         [legajo]
       );
@@ -97,11 +97,6 @@ class Usuario {
         throw new Error('Credenciales inválidas');
       }
 
-      // Verificar estado del usuario
-      if (usuario.estado !== 'activo') {
-        throw new Error('Usuario inactivo');
-      }
-
       // Verificar contraseña
       const isValidPassword = await this.verifyPassword(password, usuario.password_hash);
 
@@ -128,7 +123,7 @@ class Usuario {
   static async findAll() {
     try {
       const usuarios = await db.all(
-        `SELECT id, legajo, nombre, apellido, email, rol, estado, created_at
+        `SELECT id, legajo, nombre, apellido, rol
          FROM usuarios ORDER BY apellido, nombre`
       );
       return usuarios;
@@ -141,7 +136,7 @@ class Usuario {
   static async findById(id) {
     try {
       const usuario = await db.get(
-        `SELECT id, legajo, nombre, apellido, email, rol, estado, created_at
+        `SELECT id, legajo, nombre, apellido, rol
          FROM usuarios WHERE id = ?`,
         [id]
       );
@@ -157,13 +152,13 @@ class Usuario {
   }
 
   // Actualizar usuario
-  static async update(id, { nombre, apellido, email, rol, estado }) {
+  static async update(id, { nombre, apellido, rol }) {
     try {
       const result = await db.run(
         `UPDATE usuarios
-         SET nombre = ?, apellido = ?, email = ?, rol = ?, estado = ?, updated_at = CURRENT_TIMESTAMP
+         SET nombre = ?, apellido = ?, rol = ?
          WHERE id = ?`,
-        [nombre, apellido, email, rol, estado, id]
+        [nombre, apellido, rol, id]
       );
 
       if (result.changes === 0) {
@@ -184,7 +179,7 @@ class Usuario {
 
       const result = await db.run(
         `UPDATE usuarios
-         SET password_hash = ?, updated_at = CURRENT_TIMESTAMP
+         SET password_hash = ?
          WHERE id = ?`,
         [password_hash, id]
       );
@@ -221,7 +216,7 @@ class Usuario {
   static async findByRol(rol) {
     try {
       const usuarios = await db.all(
-        `SELECT id, legajo, nombre, apellido, email, rol, estado, created_at
+        `SELECT id, legajo, nombre, apellido, rol
          FROM usuarios WHERE rol = ? ORDER BY apellido, nombre`,
         [rol]
       );
@@ -229,31 +224,6 @@ class Usuario {
       return usuarios;
     } catch (error) {
       throw new Error('Error obteniendo usuarios por rol: ' + error.message);
-    }
-  }
-
-  // Obtener estadísticas de usuarios
-  static async getStats() {
-    try {
-      const totalUsuarios = await db.get(
-        `SELECT COUNT(*) as total FROM usuarios`
-      );
-
-      const usuariosPorRol = await db.all(
-        `SELECT rol, COUNT(*) as cantidad FROM usuarios GROUP BY rol`
-      );
-
-      const usuariosPorEstado = await db.all(
-        `SELECT estado, COUNT(*) as cantidad FROM usuarios GROUP BY estado`
-      );
-
-      return {
-        total: totalUsuarios.total,
-        porRol: usuariosPorRol,
-        porEstado: usuariosPorEstado
-      };
-    } catch (error) {
-      throw new Error('Error obteniendo estadísticas: ' + error.message);
     }
   }
 }

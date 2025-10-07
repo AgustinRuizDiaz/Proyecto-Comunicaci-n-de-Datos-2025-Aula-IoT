@@ -14,14 +14,13 @@ app.use(express.urlencoded({ extended: true }));
 // Rutas básicas
 app.get('/', (req, res) => {
   res.json({
-    message: 'Bienvenido al API del Sistema de Gestión de Aulas IoT',
+    message: 'Bienvenido al API del Sistema de Gestión de Usuarios',
     version: '1.0.0',
     status: 'activo'
   });
 });
 
 // Rutas de la API
-app.use('/api/aulas', require('./routes/aulas'));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/usuarios', require('./middleware/auth').authenticateToken, require('./middleware/auth').requireAdmin, require('./routes/usuarios'));
 
@@ -47,21 +46,16 @@ async function startServer() {
   try {
     await db.connect();
     await db.initialize();
-    console.log('✅ Base de datos lista');
+    console.log('Base de datos conectada y lista para usar');
+
+    // Iniciar servidor
+    app.listen(PORT, () => {
+      console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
+    });
   } catch (error) {
-    console.error('❌ Error inicializando la base de datos:', error.message);
+    console.error('❌ Error iniciando el servidor:', error);
     process.exit(1);
   }
-}
-
-// Iniciar servidor
-async function main() {
-  await startServer();
-
-  app.listen(PORT, () => {
-    console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
-    console.log(`📚 Documentación API: http://localhost:${PORT}`);
-  });
 }
 
 // Manejar cierre graceful del servidor
@@ -77,4 +71,5 @@ process.on('SIGTERM', async () => {
   process.exit(0);
 });
 
-main();
+// Iniciar servidor
+startServer();
