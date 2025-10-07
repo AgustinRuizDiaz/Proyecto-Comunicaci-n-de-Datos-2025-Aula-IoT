@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { SocketProvider } from './contexts/SocketContext'
 import { ToastProvider } from './components/Toast'
 import ConnectionStatusBanner from './components/ConnectionStatusBanner'
 import CacheCleaner from './components/CacheCleaner'
@@ -79,16 +80,18 @@ const AppContent = () => {
 function App() {
   return (
     <AuthProvider>
-      <ToastProvider>
-        <Router
-          future={{
-            v7_startTransition: true,
-            v7_relativeSplatPath: true,
-          }}
-        >
-          <AppContent />
-        </Router>
-      </ToastProvider>
+      <SocketProvider>
+        <ToastProvider>
+          <Router
+            future={{
+              v7_startTransition: true,
+              v7_relativeSplatPath: true,
+            }}
+          >
+            <AppContent />
+          </Router>
+        </ToastProvider>
+      </SocketProvider>
     </AuthProvider>
   )
 }

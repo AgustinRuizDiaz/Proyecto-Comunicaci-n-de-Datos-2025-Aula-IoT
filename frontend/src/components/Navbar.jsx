@@ -85,18 +85,6 @@ const Navbar = () => {
 
           {/* Operator-only navigation */}
           <OperatorOnly>
-            <Button
-              component={Link}
-              to="/operator/sensors"
-              sx={{
-                color: 'white',
-                '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.1)' },
-                borderRadius: 2,
-                border: '1px solid rgba(255, 255, 255, 0.3)'
-              }}
-            >
-              🔧 Mis Sensores
-            </Button>
           </OperatorOnly>
         </Box>
 
@@ -111,7 +99,7 @@ const Navbar = () => {
                 {user?.legajo}
               </Typography>
               <Chip
-                label={user?.rol || 'Usuario'}
+                label={user?.rol === 'administrador' || user?.rol === 'Admin' ? 'Administrador' : 'Operario'}
                 size="small"
                 sx={{
                   bgcolor: isAdmin ? '#ef4444' : '#10b981',

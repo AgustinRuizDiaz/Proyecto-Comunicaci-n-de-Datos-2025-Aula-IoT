@@ -177,7 +177,7 @@ const ActivityLog = ({ historial, loading, onRefresh }) => {
                       {/* Usuario que realizó el cambio (si aplica) */}
                       {registro.usuario && (
                         <div className="text-xs text-gray-500">
-                          {registro.usuario_rol === 'Admin' ? '👑' : '👤'} {registro.usuario}
+                          {registro.usuario}
                         </div>
                       )}
 

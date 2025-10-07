@@ -25,33 +25,6 @@ async function initializeDatabase() {
   }
 }
 
-const db = require('../database');
-const bcrypt = require('bcryptjs');
-
-async function initializeDatabase() {
-  try {
-    console.log('🔧 Inicializando base de datos...');
-
-    // Conectar a la base de datos
-    await db.connect();
-
-    // Inicializar tablas
-    await db.initialize();
-
-    // Insertar datos de ejemplo si es necesario
-    await insertSampleData();
-
-    console.log('✅ Base de datos inicializada correctamente');
-  } catch (error) {
-    console.error('❌ Error inicializando la base de datos:', error.message);
-    process.exit(1);
-  } finally {
-    // Cerrar conexión
-    await db.disconnect();
-    process.exit(0);
-  }
-}
-
 async function insertSampleData() {
   try {
     // Verificar si ya existen usuarios

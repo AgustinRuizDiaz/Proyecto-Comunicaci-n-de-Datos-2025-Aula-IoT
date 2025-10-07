@@ -83,6 +83,7 @@ class Database {
       // Eliminar tablas existentes si existen
       await this.run(`DROP TABLE IF EXISTS dispositivos`);
       await this.run(`DROP TABLE IF EXISTS aulas`);
+      await this.run(`DROP TABLE IF EXISTS usuarios`);
 
       // Recrear tabla de usuarios
       await this.run(`

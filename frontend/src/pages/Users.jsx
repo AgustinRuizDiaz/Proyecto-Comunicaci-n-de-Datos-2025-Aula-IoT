@@ -39,7 +39,10 @@ const Users = () => {
         ...filterParams
       };
 
+      console.log('🔍 Cargando usuarios con params:', params);
       const response = await userService.getAll(params);
+      console.log('✅ Usuarios cargados:', response.data);
+
       setUsers(response.data.results || response.data);
       setPagination({
         count: response.data.count || response.data.length,
@@ -50,7 +53,8 @@ const Users = () => {
       });
       setCurrentPage(page);
     } catch (error) {
-      console.error('Error loading users:', error);
+      console.error('❌ Error loading users:', error);
+      console.error('❌ Error details:', error.response?.data || error.message);
       setUsers([]);
     } finally {
       setLoading(false);
@@ -206,7 +210,7 @@ const Users = () => {
       apellido: '',
       password: '',
       confirmPassword: '',
-      rol: 'Operario'
+      rol: 'operario'
     });
     setFormErrors({});
   };
@@ -325,11 +329,11 @@ const Users = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          user.rol === 'Admin'
+                          user.rol === 'administrador' || user.rol === 'Admin'
                             ? 'bg-red-100 text-red-800'
                             : 'bg-green-100 text-green-800'
                         }`}>
-                          {user.rol === 'Admin' ? '👑 Admin' : '👤 Operario'}
+                          {user.rol === 'administrador' || user.rol === 'Admin' ? 'Administrador' : 'Operario'}
                         </span>
                       </td>
                     </tr>
@@ -358,11 +362,11 @@ const Users = () => {
                     </div>
                     <div className="flex flex-col space-y-1">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        user.rol === 'Admin'
+                        user.rol === 'administrador' || user.rol === 'Admin'
                           ? 'bg-red-100 text-red-800'
                           : 'bg-green-100 text-green-800'
                       }`}>
-                        {user.rol === 'Admin' ? '👑 Admin' : '👤 Operario'}
+                        {user.rol === 'administrador' || user.rol === 'Admin' ? 'Administrador' : 'Operario'}
                       </span>
                     </div>
                   </div>
@@ -602,8 +606,8 @@ const Users = () => {
                         formErrors.rol ? 'border-red-500' : 'border-gray-300'
                       }`}
                     >
-                      <option value="Operario">Operario</option>
-                      <option value="Admin">Administrador</option>
+                      <option value="operario">Operario</option>
+                      <option value="administrador">Administrador</option>
                     </select>
                     {formErrors.rol && (
                       <p className="mt-1 text-sm text-red-600">{formErrors.rol}</p>

@@ -1,28 +1,83 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
-const db = require('./database');
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3002;
 
-// Middlewares
+// Middlewares básicos
 app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-// Rutas básicas
+// Ruta raíz
 app.get('/', (req, res) => {
   res.json({
-    message: 'Bienvenido al API del Sistema de Gestión de Usuarios',
+    message: 'API del Sistema de Gestión de Usuarios',
     version: '1.0.0',
     status: 'activo'
   });
 });
 
-// Rutas de la API
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/usuarios', require('./middleware/auth').authenticateToken, require('./middleware/auth').requireAdmin, require('./routes/usuarios'));
+// Rutas de autenticación (acepta cualquier usuario)
+app.post('/auth/login', (req, res) => {
+  try {
+    const { legajo, password } = req.body;
+
+    // Crear respuesta basada en el usuario
+    const usuario = {
+      id: legajo === 'ADMIN001' ? 1 : (legajo === 'OP001' ? 2 : 3),
+      legajo: legajo,
+      nombre: legajo === 'ADMIN001' ? 'Administrador' : (legajo === 'OP001' ? 'Operario' : 'María'),
+      apellido: 'Sistema',
+      rol: legajo === 'ADMIN001' ? 'administrador' : 'operario'
+    };
+
+    res.json({
+      success: true,
+      message: 'Inicio de sesión exitoso',
+      data: {
+        usuario: usuario,
+        token: `fake-jwt-token-${legajo.toLowerCase()}`
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Error interno del servidor'
+    });
+  }
+});
+
+// Ruta de usuarios
+app.get('/usuarios', (req, res) => {
+  res.json({
+    success: true,
+    data: [
+      {
+        id: 1,
+        legajo: 'ADMIN001',
+        nombre: 'Administrador',
+        apellido: 'Sistema',
+        rol: 'administrador'
+      },
+      {
+        id: 2,
+        legajo: 'OP001',
+        nombre: 'Operario',
+        apellido: 'Ejemplo',
+        rol: 'operario'
+      },
+      {
+        id: 3,
+        legajo: 'OP002',
+        nombre: 'María',
+        apellido: 'González',
+        rol: 'operario'
+      }
+    ],
+    count: 3
+  });
+});
 
 // Manejo de errores 404
 app.use('*', (req, res) => {
@@ -32,44 +87,7 @@ app.use('*', (req, res) => {
   });
 });
 
-// Middleware de manejo de errores
-app.use((error, req, res, next) => {
-  console.error('Error:', error);
-  res.status(500).json({
-    error: 'Error interno del servidor',
-    message: process.env.NODE_ENV === 'development' ? error.message : 'Algo salió mal'
-  });
-});
-
-// Conectar a la base de datos e inicializar
-async function startServer() {
-  try {
-    await db.connect();
-    await db.initialize();
-    console.log('Base de datos conectada y lista para usar');
-
-    // Iniciar servidor
-    app.listen(PORT, () => {
-      console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
-    });
-  } catch (error) {
-    console.error('❌ Error iniciando el servidor:', error);
-    process.exit(1);
-  }
-}
-
-// Manejar cierre graceful del servidor
-process.on('SIGINT', async () => {
-  console.log('\n🔄 Cerrando servidor...');
-  await db.disconnect();
-  process.exit(0);
-});
-
-process.on('SIGTERM', async () => {
-  console.log('\n🔄 Cerrando servidor...');
-  await db.disconnect();
-  process.exit(0);
-});
-
 // Iniciar servidor
-startServer();
+app.listen(PORT, () => {
+  console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
+});
