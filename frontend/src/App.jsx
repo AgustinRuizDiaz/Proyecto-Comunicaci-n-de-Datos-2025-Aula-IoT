@@ -51,7 +51,7 @@ const AppContent = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {!hideNavigation && !isMobile && <Navbar />}
-      <main className={`container mx-auto px-4 py-8 pb-20 md:pb-8 ${hideNavigation ? 'pt-0' : ''}`}>
+      <main className={`container mx-auto px-4 pb-20 md:pb-8 ${hideNavigation ? 'pt-0' : 'pt-4'}`}>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/unauthorized" element={<Unauthorized />} />

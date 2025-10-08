@@ -17,18 +17,22 @@ export const SocketProvider = ({ children }) => {
   useEffect(() => {
     const token = localStorage.getItem('access_token')
     if (token) {
-      socketRef.current = io(import.meta.env.VITE_WS_URL || 'ws://localhost:8000', {
+      socketRef.current = io(import.meta.env.VITE_WS_URL || 'http://localhost:3002', {
         auth: {
           token
         }
       })
 
       socketRef.current.on('connect', () => {
-        console.log('Connected to WebSocket')
+        console.log('✅ Connected to WebSocket')
       })
 
       socketRef.current.on('disconnect', () => {
-        console.log('Disconnected from WebSocket')
+        console.log('❌ Disconnected from WebSocket')
+      })
+
+      socketRef.current.on('connect_error', (error) => {
+        console.log('⚠️ WebSocket connection error:', error.message)
       })
 
       return () => {
@@ -42,12 +46,16 @@ export const SocketProvider = ({ children }) => {
   const emit = (event, data) => {
     if (socketRef.current) {
       socketRef.current.emit(event, data)
+    } else {
+      console.log('Socket not connected, cannot emit:', event, data)
     }
   }
 
   const on = (event, callback) => {
     if (socketRef.current) {
       socketRef.current.on(event, callback)
+    } else {
+      console.log('Socket not connected, cannot listen to:', event)
     }
   }
 

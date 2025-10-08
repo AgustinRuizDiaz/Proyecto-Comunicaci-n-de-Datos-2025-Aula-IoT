@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { userService } from '../services/api';
-import RoleBasedAccess, { AdminOnly } from '../components/RoleBasedAccess';
+import { PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { AdminOnly } from '../components/RoleBasedAccess';
 import { useAuth } from '../contexts/AuthContext';
 
 const Users = () => {
@@ -19,7 +20,7 @@ const Users = () => {
     apellido: '',
     password: '',
     confirmPassword: '',
-    rol: 'Operario'
+    rol: 'operario'
   });
   const [formErrors, setFormErrors] = useState({});
   const [deleteConfirm, setDeleteConfirm] = useState(null);
@@ -40,6 +41,8 @@ const Users = () => {
       };
 
       console.log('🔍 Cargando usuarios con params:', params);
+      console.log('🔐 Estado de autenticación:', { isAuthenticated, isAdmin, user: user?.legajo });
+
       const response = await userService.getAll(params);
       console.log('✅ Respuesta completa de la API:', response);
       console.log('✅ Datos de usuarios recibidos:', response.data);
@@ -214,9 +217,14 @@ const Users = () => {
       loadUsers(currentPage);
 
     } catch (error) {
-      console.error('Error saving user:', error);
+      console.error('❌ Error guardando usuario:', error);
+      console.error('❌ Error details:', error.response?.data);
+
       if (error.response?.data) {
         setFormErrors(error.response.data);
+      } else {
+        // Si no hay errores específicos del servidor, mostrar mensaje genérico
+        alert('Error guardando usuario: ' + (error.message || 'Error desconocido'));
       }
     }
   };
@@ -239,12 +247,28 @@ const Users = () => {
   // Handle delete user
   const handleDelete = async (userId) => {
     try {
+      console.log('🗑️ Eliminando usuario con ID:', userId);
       await userService.delete(userId);
+      console.log('✅ Usuario eliminado exitosamente');
       setDeleteConfirm(null);
       loadUsers(currentPage);
     } catch (error) {
-      console.error('Error deleting user:', error);
-      alert('Error eliminando usuario: ' + (error.response?.data?.detail || 'Error desconocido'));
+      console.error('❌ Error eliminando usuario:', error);
+      console.error('❌ Error details:', error.response?.data);
+
+      let errorMessage = 'Error desconocido al eliminar usuario';
+
+      if (error.response?.status === 404) {
+        errorMessage = `Usuario con ID ${userId} no encontrado`;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      alert(`Error eliminando usuario: ${errorMessage}`);
     }
   };
 
@@ -349,6 +373,9 @@ const Users = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Rol
                     </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Acciones
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -381,6 +408,24 @@ const Users = () => {
                         }`}>
                           {user.rol === 'administrador' || user.rol === 'Admin' ? 'Administrador' : 'Operario'}
                         </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div className="flex justify-end space-x-2">
+                          <button
+                            onClick={() => handleEdit(user)}
+                            className="text-indigo-600 hover:text-indigo-900 p-1 rounded-full hover:bg-indigo-50"
+                            title="Editar usuario"
+                          >
+                            <PencilIcon className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => setDeleteConfirm(user)}
+                            className="text-red-600 hover:text-red-900 p-1 rounded-full hover:bg-red-50"
+                            title="Eliminar usuario"
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -552,6 +597,7 @@ const Users = () => {
                         formErrors.apellido ? 'border-red-500' : 'border-gray-300'
                       }`}
                       placeholder="Apellido del usuario"
+                      required
                     />
                     {formErrors.apellido && (
                       <p className="mt-1 text-sm text-red-600">{formErrors.apellido}</p>
