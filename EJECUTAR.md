@@ -61,12 +61,11 @@ npm run dev
 ## 🔐 Usuarios de Prueba
 
 ### Usuario Administrador
-- **Legajo:** `ADM001`
+- **Legajo:** `ADMIN001`
 - **Nombre:** `Administrador Sistema`
 - **Apellido:** `Sistema`
 - **Contraseña:** `admin123`
 - **Rol:** `Administrador`
-- **Estado:** ✅ Activo
 
 ### Usuario Operario
 - **Legajo:** `OP001`
@@ -74,40 +73,6 @@ npm run dev
 - **Apellido:** `Ejemplo`
 - **Contraseña:** `operario123`
 - **Rol:** `Operario`
-- **Estado:** ✅ Activo
-
-### Usuario Operario 2
-- **Legajo:** `OP002`
-- **Nombre:** `María`
-- **Apellido:** `González`
-- **Contraseña:** `maria123`
-- **Rol:** `Operario`
-- **Estado:** ✅ Activo
-
-### Login API
-```bash
-curl -X POST http://localhost:3001/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "legajo": "ADM001",
-    "password": "admin123"
-  }'
-```
-
-### Crear Usuario (como Administrador)
-```bash
-curl -X POST http://localhost:3001/api/usuarios \
-  -H "Authorization: Bearer TU_TOKEN_ADMIN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "legajo": "OP003",
-    "nombre": "Carlos",
-    "apellido": "Rodríguez",
-    "email": "carlos.rodriguez@universidad.edu.ar",
-    "password": "carlos123",
-    "rol": "operario"
-  }'
-```
 
 ---
 

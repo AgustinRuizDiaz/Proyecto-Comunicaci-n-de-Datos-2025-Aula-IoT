@@ -124,32 +124,8 @@ export const userService = {
       const response = await api.get('/usuarios', { params })
       return response
     } catch (error) {
-      // Datos de respaldo según el contexto
-      return {
-        data: [
-          {
-            id: 1,
-            legajo: 'ADMIN001',
-            nombre: 'Administrador',
-            apellido: 'Sistema',
-            rol: 'administrador'
-          },
-          {
-            id: 2,
-            legajo: 'OP001',
-            nombre: 'Operario',
-            apellido: 'Ejemplo',
-            rol: 'operario'
-          },
-          {
-            id: 3,
-            legajo: 'OP002',
-            nombre: 'María',
-            apellido: 'González',
-            rol: 'operario'
-          }
-        ]
-      }
+      // Don't return fallback data in production - let the component handle the error
+      throw error
     }
   },
   getById: (id) => api.get(`/usuarios/${id}`),

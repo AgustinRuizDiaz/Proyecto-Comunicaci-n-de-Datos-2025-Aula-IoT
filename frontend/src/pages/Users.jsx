@@ -41,21 +41,37 @@ const Users = () => {
 
       console.log('🔍 Cargando usuarios con params:', params);
       const response = await userService.getAll(params);
-      console.log('✅ Usuarios cargados:', response.data);
+      console.log('✅ Respuesta completa de la API:', response);
+      console.log('✅ Datos de usuarios recibidos:', response.data);
 
-      setUsers(response.data.results || response.data);
+      // Ensure response data is an array
+      let usersData = [];
+      if (Array.isArray(response.data)) {
+        usersData = response.data;
+      } else if (response.data.results && Array.isArray(response.data.results)) {
+        usersData = response.data.results;
+      } else if (response.data.data && Array.isArray(response.data.data)) {
+        usersData = response.data.data;
+      } else {
+        console.warn('⚠️ Formato de respuesta inesperado:', response.data);
+        usersData = [];
+      }
+
+      console.log('✅ Usuarios procesados:', usersData);
+      setUsers(usersData);
       setPagination({
-        count: response.data.count || response.data.length,
+        count: response.data.count || usersData.length,
         next: response.data.next,
         previous: response.data.previous,
         current: page,
-        total_pages: Math.ceil((response.data.count || response.data.length) / 10)
+        total_pages: Math.ceil((response.data.count || usersData.length) / 10)
       });
       setCurrentPage(page);
     } catch (error) {
       console.error('❌ Error loading users:', error);
       console.error('❌ Error details:', error.response?.data || error.message);
       setUsers([]);
+      setPagination(null);
     } finally {
       setLoading(false);
     }
@@ -78,8 +94,12 @@ const Users = () => {
 
   // Filter users based on search term
   const filteredUsers = useMemo(() => {
+    if (!searchTerm) return users;
+
     return users.filter(user =>
-      user.legajo.toLowerCase().includes(searchTerm.toLowerCase())
+      (user.legajo && user.legajo.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (user.nombre && user.nombre.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (user.apellido && user.apellido.toLowerCase().includes(searchTerm.toLowerCase()))
     );
   }, [users, searchTerm]);
 

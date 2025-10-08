@@ -55,37 +55,27 @@ const Login = () => {
       <CssBaseline />
       <Box
         sx={{
-          minHeight: '100vh',
+          marginTop: 8,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: '#f8fafc',
         }}
       >
         <Paper
-          elevation={24}
+          elevation={3}
           sx={{
             padding: 4,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             width: '100%',
-            maxWidth: 400,
-            borderRadius: 3,
-            backgroundColor: 'white',
           }}
         >
-          <Avatar sx={{ m: 1, bgcolor: '#1e40af', width: 56, height: 56 }}>
-            <LockOutlinedIcon fontSize="large" />
+          <Avatar sx={{ m: 1, bgcolor: 'primary.main' }}>
+            <LockOutlinedIcon />
           </Avatar>
-
-          <Typography component="h1" variant="h4" sx={{ mb: 1, color: '#1e40af', fontWeight: 'bold' }}>
-            Gestor de Aulas
-          </Typography>
-
-          <Typography variant="body2" sx={{ mb: 3, color: '#64748b', textAlign: 'center' }}>
-            Sistema de Gestión de Aulas Universitarias con IoT
+          <Typography component="h1" variant="h5" sx={{ mb: 3 }}>
+            Gestor de Aulas IoT
           </Typography>
 
           <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1, width: '100%' }}>
@@ -94,7 +84,7 @@ const Login = () => {
               required
               fullWidth
               id="legajo"
-              label="Número de Legajo"
+              label="Legajo"
               name="legajo"
               autoComplete="username"
               autoFocus
@@ -102,9 +92,6 @@ const Login = () => {
               onChange={handleChange}
               sx={{
                 '& .MuiOutlinedInput-root': {
-                  '&:hover fieldset': {
-                    borderColor: '#3b82f6',
-                  },
                   '&.Mui-focused fieldset': {
                     borderColor: '#1e40af',
                   },
@@ -125,9 +112,6 @@ const Login = () => {
               onChange={handleChange}
               sx={{
                 '& .MuiOutlinedInput-root': {
-                  '&:hover fieldset': {
-                    borderColor: '#3b82f6',
-                  },
                   '&.Mui-focused fieldset': {
                     borderColor: '#1e40af',
                   },

@@ -3,8 +3,6 @@ import { useState, useEffect } from 'react'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { SocketProvider } from './contexts/SocketContext'
 import { ToastProvider } from './components/Toast'
-import ConnectionStatusBanner from './components/ConnectionStatusBanner'
-import CacheCleaner from './components/CacheCleaner'
 import Navbar from './components/Navbar'
 import BottomNavigation from './components/BottomNavigation'
 import Classrooms from './pages/Classrooms'
@@ -18,7 +16,7 @@ import ProtectedRoute, { AdminRoute, OperatorRoute, AuthenticatedRoute } from '.
 const AppContent = () => {
   const location = useLocation()
   const [isMobile, setIsMobile] = useState(false)
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, loading } = useAuth()
 
   // Hide navbar and bottom navigation on login and unauthorized pages
   const hideNavigation = location.pathname === '/login' || location.pathname === '/unauthorized'
@@ -38,9 +36,20 @@ const AppContent = () => {
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
+  // Show loading spinner while auth context is loading
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <ConnectionStatusBanner />
       {!hideNavigation && !isMobile && <Navbar />}
       <main className={`container mx-auto px-4 py-8 pb-20 md:pb-8 ${hideNavigation ? 'pt-0' : ''}`}>
         <Routes>
@@ -70,6 +79,9 @@ const AppContent = () => {
               <Users />
             </AdminRoute>
           } />
+
+          {/* Fallback route */}
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </main>
       {!hideNavigation && <BottomNavigation />}

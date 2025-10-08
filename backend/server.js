@@ -3,7 +3,7 @@ const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 3002;
+const PORT = process.env.PORT || 3001;
 
 // Middlewares básicos
 app.use(cors());
@@ -50,32 +50,54 @@ app.post('/auth/login', (req, res) => {
 
 // Ruta de usuarios
 app.get('/usuarios', (req, res) => {
+  // Datos de usuarios hardcodeados para desarrollo
+  const usuarios = [
+    {
+      id: 1,
+      legajo: 'ADMIN001',
+      nombre: 'Administrador',
+      apellido: 'Sistema',
+      rol: 'administrador'
+    },
+    {
+      id: 2,
+      legajo: 'OP001',
+      nombre: 'Operario',
+      apellido: 'Ejemplo',
+      rol: 'operario'
+    },
+    {
+      id: 3,
+      legajo: 'OP002',
+      nombre: 'María',
+      apellido: 'González',
+      rol: 'operario'
+    },
+    {
+      id: 4,
+      legajo: 'OP003',
+      nombre: 'Carlos',
+      apellido: 'Rodríguez',
+      rol: 'operario'
+    },
+    {
+      id: 5,
+      legajo: 'ADMIN002',
+      nombre: 'Ana',
+      apellido: 'Martínez',
+      rol: 'administrador'
+    }
+  ];
+
+  console.log('📊 Enviando usuarios:', usuarios.length);
+
   res.json({
     success: true,
-    data: [
-      {
-        id: 1,
-        legajo: 'ADMIN001',
-        nombre: 'Administrador',
-        apellido: 'Sistema',
-        rol: 'administrador'
-      },
-      {
-        id: 2,
-        legajo: 'OP001',
-        nombre: 'Operario',
-        apellido: 'Ejemplo',
-        rol: 'operario'
-      },
-      {
-        id: 3,
-        legajo: 'OP002',
-        nombre: 'María',
-        apellido: 'González',
-        rol: 'operario'
-      }
-    ],
-    count: 3
+    data: usuarios,
+    results: usuarios,
+    count: usuarios.length,
+    total_pages: 1,
+    current: 1
   });
 });
 
