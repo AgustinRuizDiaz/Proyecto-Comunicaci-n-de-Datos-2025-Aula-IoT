@@ -81,6 +81,13 @@ const Users = () => {
     loadUsers();
   }, []);
 
+  // Reload users when filters change (but not on initial load)
+  useEffect(() => {
+    if (Object.values(filters).some(v => v)) {
+      loadUsers(1, searchTerm, filters);
+    }
+  }, [filters]);
+
   // Debounced search
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -92,16 +99,35 @@ const Users = () => {
     return () => clearTimeout(timeoutId);
   }, [searchTerm, filters]);
 
-  // Filter users based on search term
+  // Filter users based on search term and role
   const filteredUsers = useMemo(() => {
-    if (!searchTerm) return users;
+    let filtered = users;
 
-    return users.filter(user =>
-      (user.legajo && user.legajo.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (user.nombre && user.nombre.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (user.apellido && user.apellido.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
-  }, [users, searchTerm]);
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter(user =>
+        (user.legajo && user.legajo.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (user.nombre && user.nombre.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (user.apellido && user.apellido.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+    }
+
+    // Apply role filter
+    if (filters.rol) {
+      const filterRole = filters.rol.toLowerCase();
+      filtered = filtered.filter(user => {
+        const userRole = user.rol ? user.rol.toLowerCase() : '';
+        if (filterRole === 'admin') {
+          return userRole === 'administrador';
+        } else if (filterRole === 'operario') {
+          return userRole === 'operario';
+        }
+        return false;
+      });
+    }
+
+    return filtered;
+  }, [users, searchTerm, filters]);
 
   // Handle form input changes
   const handleInputChange = (e) => {
@@ -278,7 +304,7 @@ const Users = () => {
             {/* Search */}
             <div className="md:col-span-1">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Buscar por Legajo
+                Buscar por Legajo, Nombre o Apellido
               </label>
               <input
                 type="text"
