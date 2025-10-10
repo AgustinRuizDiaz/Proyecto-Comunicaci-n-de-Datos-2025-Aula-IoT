@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnóstico - Gestor Aulas</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+        }
+        .container {
+            background: #252526;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        h1 {
+            color: #4ec9b0;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #2d2d30;
+            border-left: 3px solid #4ec9b0;
+        }
+        .success {
+            color: #4ec9b0;
+        }
+        .error {
+            color: #f48771;
+        }
+        .warning {
+            color: #dcdcaa;
+        }
+        button {
+            background: #0e639c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #1177bb;
+        }
+        pre {
+            background: #1e1e1e;
+            padding: 10px;
+            border-radius: 3px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Diagnóstico del Sistema</h1>
+        
+        <div class="section">
+            <h3>Estado de los Servidores</h3>
+            <div id="server-status">Verificando...</div>
+        </div>
+
+        <div class="section">
+            <h3>Service Workers</h3>
+            <div id="sw-status">Verificando...</div>
+        </div>
+
+        <div class="section">
+            <h3>Almacenamiento Local</h3>
+            <div id="storage-status">Verificando...</div>
+        </div>
+
+        <div class="section">
+            <h3>Errores de JavaScript</h3>
+            <div id="js-errors">
+                <pre id="error-log">No hay errores registrados</pre>
+            </div>
+        </div>
+
+        <div class="section">
+            <button onclick="runDiagnostics()">🔄 Ejecutar Diagnóstico</button>
+            <button onclick="clearAll()">🧹 Limpiar Todo</button>
+            <button onclick="location.href='/'">🏠 Ir a Inicio</button>
+            <button onclick="location.href='/clear-cache.html'">🔧 Herramienta de Limpieza</button>
+        </div>
+    </div>
+
+    <script>
+        const errorLog = [];
+
+        // Capturar errores de JavaScript
+        window.addEventListener('error', (event) => {
+            errorLog.push({
+                message: event.message,
+                source: event.filename,
+                line: event.lineno,
+                col: event.colno,
+                error: event.error?.stack
+            });
+            updateErrorLog();
+        });
+
+        window.addEventListener('unhandledrejection', (event) => {
+            errorLog.push({
+                message: 'Promise rejection: ' + event.reason,
+                type: 'Promise'
+            });
+            updateErrorLog();
+        });
+
+        function updateErrorLog() {
+            const errorLogEl = document.getElementById('error-log');
+            if (errorLog.length === 0) {
+                errorLogEl.textContent = 'No hay errores registrados';
+            } else {
+                errorLogEl.textContent = JSON.stringify(errorLog, null, 2);
+            }
+        }
+
+        async function runDiagnostics() {
+            // Verificar backend
+            const serverStatus = document.getElementById('server-status');
+            try {
+                const response = await fetch('http://localhost:3003/');
+                const data = await response.json();
+                serverStatus.innerHTML = `<span class="success">✅ Backend OK</span><pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                serverStatus.innerHTML = `<span class="error">❌ Backend NO disponible: ${error.message}</span>`;
+            }
+
+            // Verificar Service Workers
+            const swStatus = document.getElementById('sw-status');
+            if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                if (registrations.length > 0) {
+                    swStatus.innerHTML = `<span class="warning">⚠️ ${registrations.length} Service Worker(s) registrado(s)</span><pre>${JSON.stringify(registrations.map(r => r.scope), null, 2)}</pre>`;
+                } else {
+                    swStatus.innerHTML = '<span class="success">✅ No hay Service Workers registrados</span>';
+                }
+            } else {
+                swStatus.innerHTML = '<span class="success">✅ Service Workers no soportados</span>';
+            }
+
+            // Verificar localStorage
+            const storageStatus = document.getElementById('storage-status');
+            const localStorageKeys = Object.keys(localStorage);
+            const sessionStorageKeys = Object.keys(sessionStorage);
+            
+            let storageInfo = `<div>
+                <p><strong>localStorage:</strong> ${localStorageKeys.length} items</p>
+                <pre>${JSON.stringify(Object.fromEntries(Object.entries(localStorage)), null, 2)}</pre>
+                <p><strong>sessionStorage:</strong> ${sessionStorageKeys.length} items</p>
+            </div>`;
+            storageStatus.innerHTML = storageInfo;
+        }
+
+        async function clearAll() {
+            if (confirm('¿Estás seguro de limpiar TODOS los datos (Service Workers, Caches, Storage)?')) {
+                // Limpiar service workers
+                if ('serviceWorker' in navigator) {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    for(let registration of registrations) {
+                        await registration.unregister();
+                    }
+                }
+
+                // Limpiar caches
+                if ('caches' in window) {
+                    const cacheNames = await caches.keys();
+                    await Promise.all(cacheNames.map(name => caches.delete(name)));
+                }
+
+                // Limpiar storage
+                localStorage.clear();
+                sessionStorage.clear();
+
+                alert('✅ Todo limpiado. Recarga la página.');
+                location.reload();
+            }
+        }
+
+        // Ejecutar diagnóstico al cargar
+        runDiagnostics();
+    </script>
+</body>
+</html>

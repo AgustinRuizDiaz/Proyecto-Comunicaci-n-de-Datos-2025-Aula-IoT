@@ -39,7 +39,16 @@ const Login = () => {
     try {
       const result = await login(credentials.legajo, credentials.password)
       if (result.success) {
-        navigate('/')
+        // Obtener datos del usuario del localStorage
+        const userStr = localStorage.getItem('user')
+        const user = userStr ? JSON.parse(userStr) : null
+        
+        // Redirigir según el rol
+        if (user && user.rol === 'administrador') {
+          navigate('/') // Dashboard para admin
+        } else {
+          navigate('/classrooms') // Aulas para operarios
+        }
       } else {
         setError(result.error)
       }

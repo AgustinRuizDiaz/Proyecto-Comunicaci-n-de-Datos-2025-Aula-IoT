@@ -14,7 +14,7 @@ const authenticateToken = async (req, res, next) => {
       });
     }
 
-    // Verificar token
+    // Verificar token JWT
     const decoded = Usuario.verifyToken(token);
 
     // Buscar usuario para verificar que aún existe y está activo

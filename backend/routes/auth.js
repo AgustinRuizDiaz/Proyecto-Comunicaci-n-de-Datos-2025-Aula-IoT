@@ -5,22 +5,13 @@ const Usuario = require('../models/Usuario');
 // POST /api/auth/register - Registrar nuevo usuario
 router.post('/register', async (req, res) => {
   try {
-    const { legajo, nombre, apellido, email, password, rol } = req.body;
+    const { legajo, nombre, apellido, password, rol } = req.body;
 
     // Validaciones básicas
-    if (!legajo || !nombre || !apellido || !email || !password) {
+    if (!legajo || !nombre || !apellido || !password) {
       return res.status(400).json({
         success: false,
-        error: 'Todos los campos son requeridos: legajo, nombre, apellido, email, password'
-      });
-    }
-
-    // Validar formato de email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Formato de email inválido'
+        error: 'Todos los campos son requeridos: legajo, nombre, apellido, password'
       });
     }
 
@@ -45,7 +36,6 @@ router.post('/register', async (req, res) => {
       legajo: legajo.trim(),
       nombre: nombre.trim(),
       apellido: apellido.trim(),
-      email: email.trim().toLowerCase(),
       password,
       rol: rol || 'operario'
     });

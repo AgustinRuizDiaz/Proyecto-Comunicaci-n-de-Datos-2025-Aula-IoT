@@ -170,8 +170,8 @@ const Users = () => {
     if (!editingUser) { // Only for new users
       if (!formData.password) {
         errors.password = 'La contraseña es requerida';
-      } else if (formData.password.length < 8) {
-        errors.password = 'La contraseña debe tener al menos 8 caracteres';
+      } else if (formData.password.length < 6) {
+        errors.password = 'La contraseña debe tener al menos 6 caracteres';
       }
 
       if (!formData.confirmPassword) {
@@ -180,8 +180,8 @@ const Users = () => {
         errors.confirmPassword = 'Las contraseñas no coinciden';
       }
     } else { // For editing users
-      if (formData.password && formData.password.length < 8) {
-        errors.password = 'La contraseña debe tener al menos 8 caracteres';
+      if (formData.password && formData.password.length < 6) {
+        errors.password = 'La contraseña debe tener al menos 6 caracteres';
       }
       if (formData.password && formData.password !== formData.confirmPassword) {
         errors.confirmPassword = 'Las contraseñas no coinciden';
@@ -410,20 +410,20 @@ const Users = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex justify-end space-x-2">
+                        <div className="flex justify-end space-x-3">
                           <button
                             onClick={() => handleEdit(user)}
-                            className="text-indigo-600 hover:text-indigo-900 p-1 rounded-full hover:bg-indigo-50"
+                            className="text-indigo-600 hover:text-indigo-900 p-2 rounded-lg hover:bg-indigo-50 border border-indigo-200 transition-colors"
                             title="Editar usuario"
                           >
-                            <PencilIcon className="h-4 w-4" />
+                            <PencilIcon className="h-5 w-5" />
                           </button>
                           <button
                             onClick={() => setDeleteConfirm(user)}
-                            className="text-red-600 hover:text-red-900 p-1 rounded-full hover:bg-red-50"
+                            className="text-red-600 hover:text-red-900 p-2 rounded-lg hover:bg-red-50 border border-red-200 transition-colors"
                             title="Eliminar usuario"
                           >
-                            <TrashIcon className="h-4 w-4" />
+                            <TrashIcon className="h-5 w-5" />
                           </button>
                         </div>
                       </td>
@@ -462,18 +462,20 @@ const Users = () => {
                     </div>
                   </div>
                   <AdminOnly>
-                    <div className="flex space-x-2">
+                    <div className="flex space-x-2 w-full">
                       <button
                         onClick={() => handleEdit(user)}
-                        className="flex-1 bg-indigo-600 text-white px-3 py-2 rounded text-sm hover:bg-indigo-700"
+                        className="flex-1 text-indigo-600 hover:text-indigo-900 p-2 rounded-lg hover:bg-indigo-50 border border-indigo-200 transition-colors"
+                        title="Editar usuario"
                       >
-                        Editar
+                        <PencilIcon className="h-4 w-4 mx-auto" />
                       </button>
                       <button
                         onClick={() => setDeleteConfirm(user)}
-                        className="flex-1 bg-red-600 text-white px-3 py-2 rounded text-sm hover:bg-red-700"
+                        className="flex-1 text-red-600 hover:text-red-900 p-2 rounded-lg hover:bg-red-50 border border-red-200 transition-colors"
+                        title="Eliminar usuario"
                       >
-                        Eliminar
+                        <TrashIcon className="h-4 w-4 mx-auto" />
                       </button>
                     </div>
                   </AdminOnly>
@@ -618,7 +620,7 @@ const Users = () => {
                           className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                             formErrors.password ? 'border-red-500' : 'border-gray-300'
                           }`}
-                          placeholder="Mínimo 8 caracteres"
+                          placeholder="Mínimo 6 caracteres"
                         />
                         {formErrors.password && (
                           <p className="mt-1 text-sm text-red-600">{formErrors.password}</p>

@@ -41,7 +41,7 @@ npm run init-db
 npm run dev
 ```
 
-**✅ Backend ejecutándose en:** http://localhost:3001
+**✅ Backend ejecutándose en:** http://localhost:3002
 
 ### 2. Frontend - React
 
@@ -105,15 +105,15 @@ npm run dev
 
 ### Variables de Entorno Backend (.env)
 ```env
-PORT=3001
+PORT=3002
 NODE_ENV=development
 JWT_SECRET=gestor_aulas_secret_key_2025
 ```
 
 ### Variables de Entorno Frontend (.env)
 ```env
-VITE_API_URL=http://127.0.0.1:3001/api
-VITE_WS_URL=ws://127.0.0.1:3001/ws
+VITE_API_URL=http://127.0.0.1:3002
+VITE_WS_URL=ws://127.0.0.1:3002
 ```
 
 ---
@@ -187,7 +187,7 @@ npm run clear-cache
 
 ### Problema: Frontend no se conecta al backend
 **Solución:** Verificar que ambas aplicaciones estén corriendo y en los puertos correctos:
-- Backend: http://localhost:3001
+- Backend: http://localhost:3002
 - Frontend: http://localhost:5173
 
 ### Problema: Error de autenticación

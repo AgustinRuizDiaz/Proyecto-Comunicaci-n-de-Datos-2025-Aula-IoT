@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3001'
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3003'
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -42,75 +42,11 @@ api.interceptors.response.use(
 
 export const authService = {
   login: async (credentials) => {
-    try {
-      console.log('🔐 Intentando login con:', credentials)
-      // Usar axios directamente para login (sin token de autorización)
-      const response = await axios.post(`${API_BASE_URL}/auth/login`, credentials)
-      return response
-    } catch (error) {
-      // Sistema de respaldo completo para desarrollo
-      const { legajo, password } = credentials
-
-      // Verificar credenciales conocidas
-      if (legajo === 'ADMIN001' && password === 'admin123') {
-        return {
-          data: {
-            success: true,
-            message: 'Inicio de sesión exitoso (modo desarrollo)',
-            data: {
-              usuario: {
-                id: 1,
-                legajo: 'ADMIN001',
-                nombre: 'Administrador',
-                apellido: 'Sistema',
-                rol: 'administrador'
-              },
-              token: 'fake-jwt-token-admin'
-            }
-          }
-        }
-      } else if (legajo === 'OP001' && password === 'operario123') {
-        return {
-          data: {
-            success: true,
-            message: 'Inicio de sesión exitoso (modo desarrollo)',
-            data: {
-              usuario: {
-                id: 2,
-                legajo: 'OP001',
-                nombre: 'Operario',
-                apellido: 'Ejemplo',
-                rol: 'operario'
-              },
-              token: 'fake-jwt-token-operario'
-            }
-          }
-        }
-      } else if (legajo === 'OP002' && password === 'maria123') {
-        return {
-          data: {
-            success: true,
-            message: 'Inicio de sesión exitoso (modo desarrollo)',
-            data: {
-              usuario: {
-                id: 3,
-                legajo: 'OP002',
-                nombre: 'María',
-                apellido: 'González',
-                rol: 'operario'
-              },
-              token: 'fake-jwt-token-maria'
-            }
-          }
-        }
-      }
-
-      // Si no son credenciales conocidas, devolver error
-      throw new Error('Credenciales inválidas')
-    }
+    console.log('🔐 Intentando login con:', credentials)
+    const response = await axios.post(`${API_BASE_URL}/auth/login`, credentials)
+    return response
   },
   logout: () => {
-    // Para nuestro backend, solo necesitamos limpiar el token localmente
     if (typeof window !== 'undefined' && localStorage) {
       localStorage.removeItem('access_token')
       localStorage.removeItem('user')

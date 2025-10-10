@@ -94,6 +94,7 @@ class Database {
           apellido TEXT NOT NULL,
           password_hash TEXT NOT NULL,
           rol TEXT DEFAULT 'operario' CHECK (rol IN ('administrador', 'operario')),
+          estado TEXT DEFAULT 'activo' CHECK (estado IN ('activo', 'inactivo')),
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
@@ -118,6 +119,7 @@ class Database {
           apellido TEXT NOT NULL,
           password_hash TEXT NOT NULL,
           rol TEXT DEFAULT 'operario' CHECK (rol IN ('administrador', 'operario')),
+          estado TEXT DEFAULT 'activo' CHECK (estado IN ('activo', 'inactivo')),
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )

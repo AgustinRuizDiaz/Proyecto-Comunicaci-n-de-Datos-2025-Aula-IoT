@@ -17,7 +17,7 @@ export const SocketProvider = ({ children }) => {
   useEffect(() => {
     const token = localStorage.getItem('access_token')
     if (token) {
-      socketRef.current = io(import.meta.env.VITE_WS_URL || 'http://localhost:3002', {
+      socketRef.current = io(import.meta.env.VITE_WS_URL || 'http://localhost:3003', {
         auth: {
           token
         }

@@ -7,12 +7,12 @@ class Usuario {
   static async create({ legajo, nombre, apellido, password, rol = 'operario' }) {
     try {
       // Verificar si el legajo ya existe
-      const existingUser = await db.get(
+      const existingLegajo = await db.get(
         'SELECT id FROM usuarios WHERE legajo = ?',
         [legajo]
       );
 
-      if (existingUser) {
+      if (existingLegajo) {
         throw new Error('El legajo ya está registrado');
       }
 
@@ -36,7 +36,7 @@ class Usuario {
   static async findByLegajo(legajo) {
     try {
       const usuario = await db.get(
-        `SELECT id, legajo, nombre, apellido, rol
+        `SELECT id, legajo, nombre, apellido, rol, estado
          FROM usuarios WHERE legajo = ?`,
         [legajo]
       );
@@ -123,8 +123,8 @@ class Usuario {
   static async findAll() {
     try {
       const usuarios = await db.all(
-        `SELECT id, legajo, nombre, apellido, rol
-         FROM usuarios ORDER BY apellido, nombre`
+        `SELECT id, legajo, nombre, apellido, rol, estado
+         FROM usuarios WHERE estado = 'activo' ORDER BY apellido, nombre`
       );
       return usuarios;
     } catch (error) {
@@ -136,7 +136,7 @@ class Usuario {
   static async findById(id) {
     try {
       const usuario = await db.get(
-        `SELECT id, legajo, nombre, apellido, rol
+        `SELECT id, legajo, nombre, apellido, rol, estado
          FROM usuarios WHERE id = ?`,
         [id]
       );
@@ -216,8 +216,8 @@ class Usuario {
   static async findByRol(rol) {
     try {
       const usuarios = await db.all(
-        `SELECT id, legajo, nombre, apellido, rol
-         FROM usuarios WHERE rol = ? ORDER BY apellido, nombre`,
+        `SELECT id, legajo, nombre, apellido, rol, estado
+         FROM usuarios WHERE rol = ? AND estado = 'activo' ORDER BY apellido, nombre`,
         [rol]
       );
 
