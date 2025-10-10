@@ -18,86 +18,114 @@
 │   ├── models/       # Modelos de datos
 │   ├── routes/       # Rutas de la API
 │   ├── middleware/   # Middleware personalizado
+│   ├── scripts/      # Scripts de inicialización
 │   └── package.json
 ├── frontend/         # React + Vite
+│   ├── src/         # Código fuente
+│   ├── public/      # Archivos públicos
+│   └── package.json
 └── docs/            # Documentación
 ```
 
 ---
 
+## ⚙️ Requisitos Previos
+
+- **Node.js:** Versión 18.x o superior (recomendado: v20.9.0)
+- **npm:** Incluido con Node.js
+- **Git:** Para clonar el repositorio
+
+---
+
 ## 🚀 Inicio Rápido (Desarrollo)
 
-### 1. Backend - Node.js + Express + SQLite
+### Paso 1: Clonar el Repositorio
 
 ```bash
-# Instalar dependencias
-cd backend
-npm install
-
-# Inicializar base de datos (crea tablas y datos de ejemplo)
-npm run init-db
-
-# Ejecutar servidor backend (modo desarrollo)
-npm run dev
+git clone https://github.com/AgustinRuizDiaz/Proyecto-Comunicaci-n-de-Datos-2025-Aula-IoT.git
+cd Proyecto-Comunicaci-n-de-Datos-2025-Aula-IoT
 ```
 
-**✅ Backend ejecutándose en:** http://localhost:3002
+### Paso 2: Backend - Node.js + Express + SQLite
 
-### 2. Frontend - React
+**⚠️ IMPORTANTE:** El backend debe estar corriendo ANTES de iniciar el frontend.
 
 ```bash
+# Navegar a la carpeta backend
+cd backend
+
 # Instalar dependencias
-cd frontend
 npm install
 
-# Ejecutar servidor frontend
+# Inicializar base de datos con usuarios de prueba
+node scripts/resetDatabase.js
+
+# Ejecutar servidor backend
+node server.js
+```
+
+**✅ Backend ejecutándose en:** http://localhost:3003
+
+**Verificación:** Deberías ver el mensaje:
+```
+🚀 Servidor corriendo en http://localhost:3003
+📊 Base de datos: SQLite conectada
+```
+
+### Paso 3: Frontend - React (En otra terminal)
+
+**⚠️ Abrir una NUEVA terminal** sin cerrar la del backend.
+
+```bash
+# Navegar a la carpeta frontend
+cd frontend
+
+# Instalar dependencias
+npm install
+
+# Ejecutar servidor de desarrollo
 npm run dev
 ```
 
 **✅ Frontend ejecutándose en:** http://localhost:5173
 
+**Acceso:** Abre tu navegador en http://localhost:5173
+
 ---
 
 ## 🔐 Usuarios de Prueba
 
-### Usuario Administrador
+**Los usuarios se crean automáticamente al ejecutar `node scripts/resetDatabase.js`**
+
+### 👨‍💼 Usuario Administrador
 - **Legajo:** `ADMIN001`
-- **Nombre:** `Administrador Sistema`
-- **Apellido:** `Sistema`
 - **Contraseña:** `admin123`
 - **Rol:** `Administrador`
+- **Acceso:** Dashboard completo, gestión de usuarios, estadísticas
 
-### Usuario Operario
+### 👷 Usuario Operario
 - **Legajo:** `OP001`
-- **Nombre:** `Operario`
-- **Apellido:** `Ejemplo`
 - **Contraseña:** `operario123`
 - **Rol:** `Operario`
+- **Acceso:** Gestión de aulas, visualización de estado
+
+**Nota:** Usa el **legajo** (no nombre de usuario) para iniciar sesión.
 
 ---
 
 ## 📚 API Endpoints Principales
 
 ### Autenticación
-- `POST /api/auth/login` - Iniciar sesión
-- `POST /api/auth/register` - Registrar usuario
-- `GET /api/auth/profile` - Obtener perfil del usuario autenticado
-
-### Aulas
-- `GET /api/aulas` - Listar todas las aulas
-- `GET /api/aulas/:id` - Obtener aula específica
-- `POST /api/aulas` - Crear nueva aula
-- `PUT /api/aulas/:id` - Actualizar aula
-- `DELETE /api/aulas/:id` - Eliminar aula
-- `GET /api/aulas/search?q=query` - Buscar aulas
-- `GET /api/aulas/stats` - Estadísticas de aulas
+- `POST /auth/login` - Iniciar sesión
+- `POST /auth/register` - Registrar usuario (requiere token de administrador)
 
 ### Usuarios (Solo Administradores)
-- `GET /api/usuarios` - Listar todos los usuarios
-- `GET /api/usuarios/stats` - Estadísticas de usuarios
-- `POST /api/usuarios` - Crear nuevo usuario
-- `PUT /api/usuarios/:id` - Actualizar usuario
-- `DELETE /api/usuarios/:id` - Eliminar usuario
+- `GET /usuarios` - Listar todos los usuarios
+- `POST /usuarios` - Crear nuevo usuario
+- `PUT /usuarios/:id` - Actualizar usuario
+- `DELETE /usuarios/:id` - Eliminar usuario
+
+**Nota:** Todos los endpoints requieren autenticación con token JWT (excepto `/auth/login`)
 
 ---
 
@@ -105,40 +133,40 @@ npm run dev
 
 ### Variables de Entorno Backend (.env)
 ```env
-PORT=3002
+PORT=3003
 NODE_ENV=development
 JWT_SECRET=gestor_aulas_secret_key_2025
 ```
 
 ### Variables de Entorno Frontend (.env)
 ```env
-VITE_API_URL=http://127.0.0.1:3002
-VITE_WS_URL=ws://127.0.0.1:3002
+VITE_API_URL=http://localhost:3003
+VITE_WS_URL=http://127.0.0.1:3003
 ```
+
+**⚠️ IMPORTANTE:** Los archivos `.env` ya están configurados correctamente. **NO los modifiques** a menos que cambies los puertos intencionalmente.
 
 ---
 
 ## 🛠️ Comandos Útiles
 
-### Backend
+### Backend (desde carpeta `/backend`)
 ```bash
 # Instalar dependencias
 npm install
 
-# Inicializar base de datos con datos de ejemplo
-npm run init-db
+# Resetear base de datos (ELIMINA todos los datos y crea usuarios de prueba)
+node scripts/resetDatabase.js
 
-# Ejecutar en modo desarrollo (con auto-reload)
-npm run dev
+# Ejecutar servidor backend
+node server.js
 
-# Ejecutar en modo producción
-npm start
-
-# Ver logs del servidor
-npm run logs
+# Ver contenido de la base de datos (opcional)
+sqlite3 database.sqlite ".tables"
+sqlite3 database.sqlite "SELECT * FROM usuarios;"
 ```
 
-### Frontend
+### Frontend (desde carpeta `/frontend`)
 ```bash
 # Instalar dependencias
 npm install
@@ -151,89 +179,167 @@ npm run build
 
 # Previsualizar build de producción
 npm run preview
-
-# Ejecutar tests
-npm run test
-
-# Limpiar caché de Vite
-npm run clear-cache
 ```
 
 ---
 
-## 📱 Características de la Aplicación
+## 📱 Características Implementadas
 
-### Funcionalidades del Frontend
-- ✅ **Autenticación completa** con manejo de sesiones
-- ✅ **Gestión de aulas** (CRUD completo)
-- ✅ **Búsqueda y filtrado** de aulas
-- ✅ **Estadísticas** en tiempo real
-- ✅ **Interfaz responsiva** (mobile-first)
-- ✅ **PWA** (Progressive Web App)
-- ✅ **Gestión de usuarios** (solo administradores)
-- 🔄 **Monitoreo en tiempo real** (preparado para WebSockets)
-- 🔄 **Control de dispositivos IoT** (preparado para ESP32)
+### ✅ Funcionalidades Completadas
+- ✅ **Sistema de autenticación JWT** con roles (Administrador/Operario)
+- ✅ **Gestión de usuarios** (CRUD completo, solo administradores)
+- ✅ **Interfaz responsiva** con Tailwind CSS
+- ✅ **Base de datos SQLite** con scripts de inicialización
+- ✅ **Redirección basada en roles** (Admin → Dashboard, Operario → Aulas)
 
-### Seguridad Implementada
-- 🔐 **JWT Authentication** con expiración automática
-- 👥 **Control de roles** (Administrador/Operario)
-- 🔒 **Validación de datos** en todos los endpoints
+### 🔄 En Desarrollo
+- 🔄 **Módulo de Aulas** (gestión de aulas y dispositivos)
+- 🔄 **Historial de eventos** (logs de cambios y actividades)
+- 🔄 **Integración ESP32** (comunicación IoT via WebSocket)
+- 🔄 **Monitoreo en tiempo real** con Socket.IO
+
+### 🔐 Seguridad Implementada
+- 🔐 **JWT Authentication** con tokens firmados
+- 👥 **Control de acceso basado en roles** (RBAC)
+- 🔒 **Middleware de autenticación** en todas las rutas protegidas
 - 🛡️ **CORS configurado** para desarrollo seguro
-- 🚫 **Manejo seguro de errores** (sin exposición de datos sensibles)
+- 🚫 **Validación de contraseñas** con bcrypt
 
 ---
 
-## 🚨 Solución de Problemas
+## 🚨 Solución de Problemas Comunes
 
-### Problema: Frontend no se conecta al backend
-**Solución:** Verificar que ambas aplicaciones estén corriendo y en los puertos correctos:
-- Backend: http://localhost:3002
-- Frontend: http://localhost:5173
+### ❌ Error: "Network Error" al iniciar sesión
 
-### Problema: Error de autenticación
+**Causa:** El backend no está corriendo o está en un puerto incorrecto.
+
 **Solución:**
-1. Verificar que el backend esté inicializado con usuarios de ejemplo
-2. Usar las credenciales correctas desde la sección "Usuarios de Prueba"
-3. Verificar que el token JWT no esté expirado
+1. Verifica que el backend esté corriendo en http://localhost:3003
+2. En una terminal, navega a `/backend` y ejecuta: `node server.js`
+3. Deberías ver: "🚀 Servidor corriendo en http://localhost:3003"
 
-### Problema: Base de datos no se inicializa
+### ❌ Error: "No se encontró el usuario" o "Credenciales inválidas"
+
+**Causa:** La base de datos no tiene usuarios o las credenciales son incorrectas.
+
 **Solución:**
 ```bash
-# Limpiar base de datos existente
-rm backend/database.sqlite
-
-# Re-inicializar
+# En la carpeta backend
 cd backend
-npm run init-db
+node scripts/resetDatabase.js
+
+# Verifica que se crearon los usuarios:
+# ✅ Usuario Administrador: ADMIN001 / admin123
+# ✅ Usuario Operario: OP001 / operario123
 ```
 
-### Problema: Frontend muestra errores de red
+### ❌ El frontend no carga (pantalla en blanco)
+
 **Solución:**
-1. Reiniciar el servidor del backend
-2. Limpiar caché del navegador (Ctrl+Shift+R)
-3. Verificar configuración de CORS en el backend
+1. Verifica que el frontend esté corriendo en http://localhost:5173
+2. Abre la consola del navegador (F12) y busca errores
+3. Limpia la caché del navegador: Ctrl+Shift+R (Windows) o Cmd+Shift+R (Mac)
+4. Si persiste, navega a `/frontend` y ejecuta:
+```bash
+npm install
+npm run dev
+```
+
+### ❌ Puerto 3003 ya está en uso
+
+**Solución (Windows PowerShell):**
+```powershell
+# Ver qué proceso usa el puerto 3003
+netstat -ano | findstr :3003
+
+# Matar el proceso (reemplaza PID con el número del proceso)
+taskkill /PID <PID> /F
+```
+
+**Solución (Linux/Mac):**
+```bash
+# Ver qué proceso usa el puerto 3003
+lsof -i :3003
+
+# Matar el proceso
+kill -9 <PID>
+```
+
+### ❌ Error: "Cannot find module 'sqlite3'" o similar
+
+**Causa:** Dependencias no instaladas.
+
+**Solución:**
+```bash
+# Backend
+cd backend
+npm install
+
+# Frontend
+cd frontend
+npm install
+```
+
+### ⚠️ Los cambios no se reflejan en el frontend
+
+**Solución:**
+1. Detén el servidor (Ctrl+C)
+2. Ejecuta nuevamente: `npm run dev`
+3. Si persiste, elimina la carpeta `node_modules` y `package-lock.json`, luego:
+```bash
+npm install
+npm run dev
+```
+
+---
+
+## � Checklist de Inicio
+
+Antes de empezar a trabajar, verifica:
+
+- [ ] Node.js instalado (v18+): `node --version`
+- [ ] npm instalado: `npm --version`
+- [ ] Repositorio clonado correctamente
+- [ ] Dependencias del backend instaladas (`cd backend && npm install`)
+- [ ] Dependencias del frontend instaladas (`cd frontend && npm install`)
+- [ ] Base de datos inicializada (`node scripts/resetDatabase.js`)
+- [ ] Backend corriendo en http://localhost:3003
+- [ ] Frontend corriendo en http://localhost:5173
+- [ ] Puedes iniciar sesión con ADMIN001/admin123
 
 ---
 
 ## 📈 Próximas Funcionalidades
 
-- [ ] **WebSockets** para monitoreo en tiempo real
-- [ ] **Integración con ESP32** para control de dispositivos IoT
-- [ ] **Sistema de reservas** de aulas
-- [ ] **Reportes avanzados** y exportación
-- [ ] **Notificaciones push** para eventos importantes
-- [ ] **Tests automatizados** (unitarios e integración)
-- [ ] **Despliegue en producción** (Docker + Nginx)
+- [ ] **Módulo de Aulas** - CRUD completo con dispositivos asociados
+- [ ] **Módulo de Historial** - Logs de eventos y cambios
+- [ ] **WebSockets** - Comunicación en tiempo real
+- [ ] **Integración ESP32** - Control de luces y sensores
+- [ ] **Sistema de alertas** - Notificaciones automáticas
+- [ ] **Dashboard con métricas** - Gráficos y estadísticas
+- [ ] **Tests automatizados** - Pruebas unitarias e integración
 
 ---
 
-## 🤝 Contribución
+## 🤝 Información del Proyecto
 
-1. Crear rama para nuevas funcionalidades
-2. Implementar cambios siguiendo las convenciones del proyecto
-3. Ejecutar pruebas antes de hacer merge
-4. Documentar cambios en este archivo si es necesario
+**Proyecto:** Gestor de Aulas IoT  
+**Materia:** Comunicación de Datos 2025  
+**Universidad:** Universidad Nacional del Nordeste (UNNE)  
+**Autor:** Agustín Ruiz Díaz  
+**Repositorio:** [GitHub - Proyecto Comunicación de Datos 2025](https://github.com/AgustinRuizDiaz/Proyecto-Comunicaci-n-de-Datos-2025-Aula-IoT)
 
 ---
 
-**📞 Contacto:** Agustín Ruiz Díaz - Proyecto Comunicación de Datos 2025
+## 📞 Soporte
+
+Si encuentras problemas no listados en esta guía:
+
+1. Revisa los mensajes de error en la consola
+2. Verifica que ambos servidores (backend y frontend) estén corriendo
+3. Consulta el archivo `CAMBIOS_IMPORTANTES.md` para ver cambios recientes
+4. Abre un issue en el repositorio de GitHub
+
+---
+
+**Última actualización:** Octubre 2025
