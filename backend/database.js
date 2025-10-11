@@ -77,7 +77,7 @@ class Database {
     });
   }
 
-  // Método para limpiar la base de datos y recrear solo usuarios
+  // Método para limpiar la base de datos y recrear todas las tablas
   async cleanAndRecreate() {
     try {
       // Eliminar tablas existentes si existen
@@ -100,7 +100,19 @@ class Database {
         )
       `);
 
-      console.log('🧹 Base de datos limpiada y tabla usuarios recreada correctamente');
+      // Recrear tabla de aulas
+      await this.run(`
+        CREATE TABLE aulas (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          nombre TEXT UNIQUE NOT NULL,
+          ip TEXT UNIQUE NOT NULL,
+          ultima_senal DATETIME,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      console.log('🧹 Base de datos limpiada y tablas recreadas correctamente');
     } catch (error) {
       console.error('❌ Error limpiando la base de datos:', error);
       throw error;
@@ -120,6 +132,18 @@ class Database {
           password_hash TEXT NOT NULL,
           rol TEXT DEFAULT 'operario' CHECK (rol IN ('administrador', 'operario')),
           estado TEXT DEFAULT 'activo' CHECK (estado IN ('activo', 'inactivo')),
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Crear tabla de aulas
+      await this.run(`
+        CREATE TABLE IF NOT EXISTS aulas (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          nombre TEXT UNIQUE NOT NULL,
+          ip TEXT UNIQUE NOT NULL,
+          ultima_senal DATETIME,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )

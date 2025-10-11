@@ -154,6 +154,19 @@ router.put('/:id', async (req, res) => {
       });
     }
 
+    // Obtener el usuario que se está editando
+    const usuarioAEditar = await Usuario.findById(id);
+
+    // Prevenir que un usuario se quite el rol de administrador a sí mismo
+    if (req.user.id === parseInt(id)) {
+      if (usuarioAEditar.rol === 'administrador' && rol === 'operario') {
+        return res.status(403).json({
+          success: false,
+          error: 'No puedes quitarte el rol de administrador a ti mismo'
+        });
+      }
+    }
+
     await Usuario.update(id, {
       nombre: nombre.trim(),
       apellido: apellido.trim(),
@@ -183,6 +196,14 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
+
+    // Prevenir que un usuario se elimine a sí mismo
+    if (req.user.id === parseInt(id)) {
+      return res.status(403).json({
+        success: false,
+        error: 'No puedes eliminar tu propia cuenta'
+      });
+    }
 
     await Usuario.delete(id);
 

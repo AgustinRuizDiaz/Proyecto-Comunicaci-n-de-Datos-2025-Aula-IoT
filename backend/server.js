@@ -38,10 +38,12 @@ async function initializeServer() {
     // Importar rutas modulares
     const usuarioRoutes = require('./routes/usuarios');
     const authRoutes = require('./routes/auth');
+    const aulaRoutes = require('./routes/aulas');
 
     // Usar rutas modulares
     app.use('/usuarios', usuarioRoutes);
     app.use('/auth', authRoutes);
+    app.use('/aulas', aulaRoutes);
 
     // Socket.IO connection handling
     io.on('connection', (socket) => {
@@ -74,7 +76,8 @@ async function initializeServer() {
         message: `La ruta ${req.originalUrl} no existe`,
         disponibles: {
           usuarios: 'GET, POST, PUT, DELETE /usuarios',
-          auth: 'POST /auth/login, POST /auth/register'
+          auth: 'POST /auth/login, POST /auth/register',
+          aulas: 'GET, POST, PUT, DELETE /aulas'
         }
       });
     });
@@ -87,6 +90,7 @@ async function initializeServer() {
       console.log(`   GET, POST, PUT, DELETE /usuarios`);
       console.log(`   POST /auth/login`);
       console.log(`   POST /auth/register`);
+      console.log(`   GET, POST, PUT, DELETE /aulas`);
     });
 
   } catch (error) {

@@ -21,6 +21,14 @@ npm run dev
 - **Usuario Admin:** `ADMIN001` / `admin123`
 - **Usuario Operario:** `OP001` / `operario123`
 
+#### 4️⃣ **Módulos Disponibles:**
+- ✅ **Usuarios** - Gestión completa de usuarios (solo admin)
+- ✅ **Aulas** - 5 aulas predefinidas con estado online/offline
+  - Crear/Editar/Eliminar aulas (solo admin)
+  - Búsqueda y filtrado por estado
+  - Indicadores visuales de conexión (verde/rojo)
+- ⏳ **Historial** - Pendiente de implementación
+
 ---
 
 ## ❌ SOLUCIÓN DE PROBLEMAS COMUNES
@@ -293,7 +301,11 @@ app.use(cors()); // Permite todos los orígenes en desarrollo
 | `userService.create` | `POST /usuarios` | ✅ | **CORREGIDO** (email auto) |
 | `userService.update` | `PUT /usuarios/:id` | ✅ | Solo admin |
 | `userService.delete` | `DELETE /usuarios/:id` | ✅ | Solo admin |
-| `aulaService.*` | N/A | ⏳ | **Placeholder - NO IMPLEMENTADO** |
+| `aulaService.getAll` | `GET /aulas` | ✅ | **IMPLEMENTADO** - Lista con estado |
+| `aulaService.create` | `POST /aulas` | ✅ | **IMPLEMENTADO** - Solo admin |
+| `aulaService.update` | `PUT /aulas/:id` | ✅ | **IMPLEMENTADO** - Solo admin |
+| `aulaService.delete` | `DELETE /aulas/:id` | ✅ | **IMPLEMENTADO** - Solo admin |
+| `aulaService.heartbeat` | `POST /aulas/:id/heartbeat` | ✅ | **IMPLEMENTADO** - ESP32 |
 | `historyService.*` | N/A | ⏳ | **Placeholder - NO IMPLEMENTADO** |
 
 #### Autenticación JWT:
@@ -392,18 +404,112 @@ node scripts/resetDatabase.js  # Borra todo y recrea desde cero
 
 ---
 
-### 🚨 PROBLEMAS CONOCIDOS Y PENDIENTES
+### � MÓDULO DE AULAS - IMPLEMENTADO ✅
+
+#### Esquema de Tabla `aulas`:
+```sql
+CREATE TABLE aulas (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  nombre TEXT UNIQUE NOT NULL,           -- ✅ Nombre único (máx 40 caracteres)
+  ip TEXT UNIQUE NOT NULL,               -- ✅ Dirección IPv4 única
+  ultima_senal DATETIME,                 -- ✅ Última señal recibida del ESP32
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)
+```
+
+#### Estado de Conexión:
+- **Online:** Última señal recibida hace menos de 2 minutos
+- **Offline:** Sin señal o señal mayor a 2 minutos
+
+#### Aulas de Prueba Disponibles:
+```javascript
+// 5 aulas predefinidas (2 online, 3 offline)
+{ nombre: 'Aula 101', ip: '192.168.1.101', estado: 'online' }
+{ nombre: 'Aula 304', ip: '192.168.1.104', estado: 'online' }
+{ nombre: 'Laboratorio A', ip: '192.168.1.102', estado: 'offline' }
+{ nombre: 'Laboratorio B', ip: '192.168.1.105', estado: 'offline' }
+{ nombre: 'Aula 203', ip: '192.168.1.103', estado: 'offline' }
+```
+
+#### API Endpoints de Aulas:
+
+| Método | Endpoint | Acceso | Descripción |
+|--------|----------|--------|-------------|
+| `GET` | `/aulas` | Todos | Listar todas las aulas con estado |
+| `GET` | `/aulas/:id` | Todos | Obtener aula específica |
+| `POST` | `/aulas` | Admin | Crear nueva aula |
+| `PUT` | `/aulas/:id` | Admin | Actualizar aula existente |
+| `DELETE` | `/aulas/:id` | Admin | Eliminar aula |
+| `POST` | `/aulas/:id/heartbeat` | ESP32 | Actualizar última señal |
+
+#### Validaciones Implementadas:
+
+**Backend (`backend/routes/aulas.js`):**
+```javascript
+// Validación de nombre
+- Requerido
+- Máximo 40 caracteres
+- Único (no puede repetirse)
+
+// Validación de IP
+- Requerido
+- Formato IPv4 válido: /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/
+- Única (no puede repetirse)
+
+// Respuestas de error
+- 400: Datos inválidos
+- 404: Aula no encontrada
+- 409: Nombre o IP duplicada
+```
+
+**Frontend (`frontend/src/pages/Classrooms.jsx`):**
+```javascript
+// Características de la interfaz (UX optimizada)
+- ✅ Lista de aulas con indicador visual (punto verde/rojo)
+- ✅ Búsqueda en tiempo real por nombre (sin perder foco)
+- ✅ Filtro por estado (Todos/Online/Offline)
+- ✅ Ordenamiento alfabético automático
+- ✅ Botón "+" responsive (solo ícono en móvil, texto completo en desktop)
+- ✅ Vista simplificada sin botones de editar/eliminar
+- ✅ Modal de creación/edición con validación (solo admin)
+- ✅ Validación HTML5 de formato IPv4
+- ✅ Límite de 40 caracteres en nombre
+- ✅ Filtrado con useMemo para mejor rendimiento
+```
+
+#### Servicios API Implementados:
+
+| Servicio | Endpoint | Estado | Observaciones |
+|----------|----------|--------|---------------|
+| `aulaService.getAll` | `GET /aulas` | ✅ | Retorna array con estado_conexion |
+| `aulaService.getById` | `GET /aulas/:id` | ✅ | Aula individual |
+| `aulaService.create` | `POST /aulas` | ✅ | Validación completa |
+| `aulaService.update` | `PUT /aulas/:id` | ✅ | Validación de duplicados |
+| `aulaService.delete` | `DELETE /aulas/:id` | ✅ | Solo admin |
+| `aulaService.heartbeat` | `POST /aulas/:id/heartbeat` | ✅ | Para ESP32 |
+
+#### Modelo de Datos (`backend/models/Aula.js`):
+```javascript
+// Métodos disponibles
+- Aula.create(data)              // Crear aula con validaciones
+- Aula.findAll()                 // Listar con estado de conexión
+- Aula.findById(id)              // Buscar por ID
+- Aula.update(id, data)          // Actualizar con validaciones
+- Aula.delete(id)                // Eliminar aula
+- Aula.updateUltimaSenal(id)     // Actualizar timestamp (ESP32)
+- Aula.getEstadoConexion(aula)   // Calcular online/offline
+```
+
+**Estado:** ✅ **COMPLETAMENTE FUNCIONAL**
+
+---
+
+### �🚨 PROBLEMAS CONOCIDOS Y PENDIENTES
 
 #### 🔴 **CRÍTICO - Requiere Implementación:**
 
-1. **Módulo de Aulas NO Implementado**
-   - ❌ No hay tabla `aulas` en BD
-   - ❌ No hay modelo `Aula.js`
-   - ❌ No hay rutas API para aulas
-   - ❌ Frontend usa servicios placeholder
-   - 📝 **Acción requerida:** Implementar módulo completo de aulas
-
-2. **Módulo de Historial NO Implementado**
+1. **Módulo de Historial NO Implementado**
    - ❌ No hay tabla `historial` en BD
    - ❌ No hay modelo ni rutas
    - ❌ Frontend usa servicios placeholder
@@ -453,7 +559,20 @@ node scripts/resetDatabase.js  # Borra todo y recrea desde cero
 
 ### 📋 RECOMENDACIONES PRIORITARIAS
 
-#### **FASE 1 - Completar Módulo de Aulas (PRÓXIMO PASO)**
+#### **FASE 1 - Módulo de Aulas ✅ COMPLETADO**
+
+El módulo de aulas ha sido implementado completamente con las siguientes características:
+
+- ✅ Modelo de base de datos con tabla `aulas`
+- ✅ CRUD completo (backend/routes/aulas.js)
+- ✅ Interfaz de usuario optimizada (Classrooms.jsx)
+- ✅ Búsqueda y filtrado en tiempo real
+- ✅ Indicadores visuales de estado (online/offline)
+- ✅ Validaciones de nombre único e IP única
+- ✅ Responsive design con botón adaptativo
+- ✅ 5 aulas de prueba predefinidas
+
+#### **FASE 2 - Completar Módulo de Historial (PRÓXIMO PASO)**
 
 1. **Crear Modelo de Base de Datos:**
 ```sql
@@ -663,7 +782,7 @@ Si la aplicación muestra **pantalla en blanco** o mensaje **"offline"**:
 - [x] Autenticación JWT implementada
 - [x] Sistema de roles (Admin/Operario)
 - [x] CRUD de usuarios completo
-- [ ] Módulo de aulas implementado
+- [x] Módulo de aulas implementado
 - [ ] Módulo de historial implementado
 - [ ] Integración IoT con ESP32
 
@@ -795,7 +914,7 @@ Si la aplicación muestra **pantalla en blanco** o mensaje **"offline"**:
 - 🟢 Interfaz responsive (desktop/mobile)
 
 **⏳ PENDIENTES DE IMPLEMENTAR:**
-- ⚪ Módulo de Aulas
+- 🟢 Módulo de Aulas (COMPLETADO)
 - ⚪ Módulo de Historial
 - ⚪ Integración con ESP32
 - ⚪ Eventos WebSocket en tiempo real
@@ -890,6 +1009,7 @@ Si la aplicación muestra **pantalla en blanco** o mensaje **"offline"**:
 8. ✅ **NUEVO:** Middleware acepta tokens de desarrollo
 9. ✅ **NUEVO:** Listado de usuarios funcionando perfectamente
 10. ✅ **NUEVO:** Herramientas de diagnóstico y limpieza creadas
+11. ✅ **NUEVO:** Módulo de Aulas completamente implementado y optimizado
 
 **Problemas resueltos:**
 - ✅ "No se encontraron usuarios" → Ahora muestra correctamente los usuarios
@@ -898,6 +1018,8 @@ Si la aplicación muestra **pantalla en blanco** o mensaje **"offline"**:
 - ✅ Pantalla en blanco / offline → Herramientas de diagnóstico disponibles
 - ✅ ERR_CONNECTION_REFUSED WebSocket → Puerto 3003 configurado en SocketContext
 - ✅ Network Error en API calls → Todos los servicios apuntan a puerto 3003
+- ✅ Buscador de aulas perdía foco → Implementado con useMemo
+- ✅ Botón no responsive → Ahora muestra solo "+" en móvil
 
 **Herramientas disponibles:**
 - 🔍 **Diagnóstico:** http://localhost:5173/diagnostico.html
@@ -906,8 +1028,8 @@ Si la aplicación muestra **pantalla en blanco** o mensaje **"offline"**:
 **Próximos pasos recomendados:**
 1. Si hay pantalla en blanco, usar herramienta de limpieza
 2. Probar todas las operaciones CRUD de usuarios
-3. Implementar módulo de Aulas (siguiente prioridad)
-4. Implementar módulo de Historial
+3. ✅ Módulo de Aulas implementado (COMPLETADO)
+4. Implementar módulo de Historial (siguiente prioridad)
 5. Integrar con dispositivos ESP32
 
 ---

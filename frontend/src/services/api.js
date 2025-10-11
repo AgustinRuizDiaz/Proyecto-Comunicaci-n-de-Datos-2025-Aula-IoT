@@ -74,13 +74,19 @@ export const userService = {
 // Estos servicios devolverán datos vacíos o errores apropiados hasta que se implementen funcionalidades específicas
 
 export const aulaService = {
-  getAll: (params = {}) => Promise.resolve({ data: [] }),
-  getById: (id) => Promise.reject(new Error('Funcionalidad no disponible')),
-  create: (aulaData) => Promise.reject(new Error('Funcionalidad no disponible')),
-  update: (id, aulaData) => Promise.reject(new Error('Funcionalidad no disponible')),
-  delete: (id) => Promise.reject(new Error('Funcionalidad no disponible')),
-  search: (query) => Promise.resolve({ data: [] }),
-  getStats: () => Promise.resolve({ data: { total: 0, porEstado: [] } }),
+  getAll: async (params = {}) => {
+    try {
+      const response = await api.get('/aulas', { params })
+      return response
+    } catch (error) {
+      throw error
+    }
+  },
+  getById: (id) => api.get(`/aulas/${id}`),
+  create: (aulaData) => api.post('/aulas', aulaData),
+  update: (id, aulaData) => api.put(`/aulas/${id}`, aulaData),
+  delete: (id) => api.delete(`/aulas/${id}`),
+  heartbeat: (id) => api.post(`/aulas/${id}/heartbeat`),
 }
 
 export const classroomService = aulaService
