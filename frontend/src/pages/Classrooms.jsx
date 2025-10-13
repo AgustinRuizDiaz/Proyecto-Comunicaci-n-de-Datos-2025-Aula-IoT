@@ -1,5 +1,6 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+﻿import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { aulaService } from '../services/api';
 
 const PlusIcon = () => (
@@ -49,6 +50,7 @@ const PersonIcon = ({ active }) => (
 
 const Classrooms = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [aulas, setAulas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -256,7 +258,11 @@ const Classrooms = () => {
         <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
           <ul className="divide-y divide-gray-200">
             {filteredAulas.map((aula) => (
-              <li key={aula.id} className="hover:bg-gray-50 transition-colors">
+              <li 
+                key={aula.id} 
+                onClick={() => navigate(`/aulas/${aula.id}`)}
+                className="hover:bg-gray-50 transition-colors cursor-pointer"
+              >
                 <div className="px-6 py-4">
                   {/* Layout responsive */}
                   <div className="flex flex-col gap-3">
@@ -288,7 +294,10 @@ const Classrooms = () => {
 
                         {/* Botón de control (solo visible en desktop, a la derecha de los iconos) */}
                         <button
-                          onClick={() => handleToggleSensor(aula.id, 'luces')}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleSensor(aula.id, 'luces');
+                          }}
                           className={`hidden md:block p-2 rounded-lg border transition-colors ${
                             aula.luces_encendidas
                               ? 'text-green-600 bg-green-50 hover:text-green-900 hover:bg-green-100 border-green-200'
@@ -307,7 +316,10 @@ const Classrooms = () => {
                     {/* Botón de control de luces (solo en mobile, full-width centrado debajo) */}
                     <div className="flex md:hidden justify-center">
                       <button
-                        onClick={() => handleToggleSensor(aula.id, 'luces')}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleSensor(aula.id, 'luces');
+                        }}
                         className={`flex-1 p-2 rounded-lg border transition-colors ${
                           aula.luces_encendidas
                             ? 'text-green-600 bg-green-50 hover:text-green-900 hover:bg-green-100 border-green-200'

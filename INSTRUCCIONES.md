@@ -27,6 +27,13 @@ npm run dev
   - Crear/Editar/Eliminar aulas (solo admin)
   - Búsqueda y filtrado por estado
   - Indicadores visuales de conexión (verde/rojo)
+  - Vista de detalle con información completa
+- ✅ **Sensores** - Gestión de sensores IoT por aula
+  - Sensor de luz (control on/off para admin y operarios)
+  - Sensor de ventana (solo lectura)
+  - Sensor de movimiento (solo lectura)
+  - Crear/Editar/Eliminar sensores (solo admin)
+  - Estados actualizables desde ESP32
 - ⏳ **Historial** - Pendiente de implementación
 
 ---
@@ -443,6 +450,18 @@ CREATE TABLE aulas (
 | `DELETE` | `/aulas/:id` | Admin | Eliminar aula |
 | `POST` | `/aulas/:id/heartbeat` | ESP32 | Actualizar última señal |
 
+#### API Endpoints de Sensores:
+
+| Método | Endpoint | Acceso | Descripción |
+|--------|----------|--------|-------------|
+| `GET` | `/sensores` | Todos | Listar todos los sensores |
+| `GET` | `/sensores/aula/:id_aula` | Todos | Obtener sensores de un aula |
+| `GET` | `/sensores/:id` | Todos | Obtener sensor específico |
+| `POST` | `/sensores` | Admin | Crear nuevo sensor |
+| `PUT` | `/sensores/:id` | Admin | Actualizar sensor completo |
+| `PATCH` | `/sensores/:id/estado` | Todos | Actualizar solo estado (ESP32/operarios) |
+| `DELETE` | `/sensores/:id` | Admin | Eliminar sensor |
+
 #### Validaciones Implementadas:
 
 **Backend (`backend/routes/aulas.js`):**
@@ -461,6 +480,28 @@ CREATE TABLE aulas (
 - 400: Datos inválidos
 - 404: Aula no encontrada
 - 409: Nombre o IP duplicada
+```
+
+**Backend (`backend/routes/sensores.js`):**
+```javascript
+// Validación de tipo
+- Requerido
+- Valores permitidos: 'Sensor de luz', 'Sensor de ventana', 'Sensor de movimiento'
+
+// Validación de pin
+- Requerido
+- Número entero entre 0 y 100
+- Único por aula (no puede haber dos sensores en el mismo pin de la misma aula)
+
+// Validación de estado
+- Booleano almacenado como INTEGER (0 o 1)
+- 0 = apagado/cerrado/no detectado
+- 1 = encendido/abierto/detectado
+
+// Respuestas de error
+- 400: Datos inválidos
+- 404: Sensor no encontrado
+- 409: Pin duplicado en la misma aula
 ```
 
 **Frontend (`frontend/src/pages/Classrooms.jsx`):**

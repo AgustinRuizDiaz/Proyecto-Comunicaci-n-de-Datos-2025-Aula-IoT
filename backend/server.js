@@ -39,11 +39,13 @@ async function initializeServer() {
     const usuarioRoutes = require('./routes/usuarios');
     const authRoutes = require('./routes/auth');
     const aulaRoutes = require('./routes/aulas');
+    const sensorRoutes = require('./routes/sensores');
 
     // Usar rutas modulares
     app.use('/usuarios', usuarioRoutes);
     app.use('/auth', authRoutes);
     app.use('/aulas', aulaRoutes);
+    app.use('/sensores', sensorRoutes);
 
     // Socket.IO connection handling
     io.on('connection', (socket) => {

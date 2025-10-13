@@ -81,6 +81,7 @@ class Database {
   async cleanAndRecreate() {
     try {
       // Eliminar tablas existentes si existen
+      await this.run(`DROP TABLE IF EXISTS sensores`);
       await this.run(`DROP TABLE IF EXISTS dispositivos`);
       await this.run(`DROP TABLE IF EXISTS aulas`);
       await this.run(`DROP TABLE IF EXISTS usuarios`);
@@ -112,6 +113,21 @@ class Database {
           personas_detectadas INTEGER DEFAULT 0,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Crear tabla de sensores
+      await this.run(`
+        CREATE TABLE sensores (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          tipo TEXT NOT NULL CHECK (tipo IN ('Sensor de luz', 'Sensor de ventana', 'Sensor de movimiento')),
+          descripcion TEXT,
+          pin INTEGER NOT NULL CHECK (pin >= 0 AND pin <= 100),
+          estado INTEGER NOT NULL DEFAULT 0,
+          id_aula INTEGER NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (id_aula) REFERENCES aulas(id) ON DELETE CASCADE
         )
       `);
 
@@ -152,6 +168,21 @@ class Database {
           personas_detectadas INTEGER DEFAULT 0,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Crear tabla de sensores
+      await this.run(`
+        CREATE TABLE IF NOT EXISTS sensores (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          tipo TEXT NOT NULL CHECK (tipo IN ('Sensor de luz', 'Sensor de ventana', 'Sensor de movimiento')),
+          descripcion TEXT,
+          pin INTEGER NOT NULL CHECK (pin >= 0 AND pin <= 100),
+          estado INTEGER NOT NULL DEFAULT 0,
+          id_aula INTEGER NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (id_aula) REFERENCES aulas(id) ON DELETE CASCADE
         )
       `);
 

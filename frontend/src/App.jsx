@@ -6,6 +6,7 @@ import { ToastProvider } from './components/Toast'
 import Navbar from './components/Navbar'
 import BottomNavigation from './components/BottomNavigation'
 import Classrooms from './pages/Classrooms'
+import AulaDetail from './pages/AulaDetail'
 import History from './pages/History'
 import Users from './pages/Users'
 import Login from './pages/Login'
@@ -65,6 +66,11 @@ const AppContent = () => {
           <Route path="/classrooms" element={
             <AuthenticatedRoute>
               <Classrooms />
+            </AuthenticatedRoute>
+          } />
+          <Route path="/aulas/:id" element={
+            <AuthenticatedRoute>
+              <AulaDetail />
             </AuthenticatedRoute>
           } />
           <Route path="/history" element={

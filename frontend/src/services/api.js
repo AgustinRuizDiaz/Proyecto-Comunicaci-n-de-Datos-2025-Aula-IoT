@@ -92,6 +92,16 @@ export const aulaService = {
 
 export const classroomService = aulaService
 
+export const sensorService = {
+  getAll: () => api.get('/sensores'),
+  getByAulaId: (id_aula) => api.get(`/sensores/aula/${id_aula}`),
+  getById: (id) => api.get(`/sensores/${id}`),
+  create: (sensorData) => api.post('/sensores', sensorData),
+  update: (id, sensorData) => api.put(`/sensores/${id}`, sensorData),
+  updateEstado: (id, estado) => api.patch(`/sensores/${id}/estado`, { estado }),
+  delete: (id) => api.delete(`/sensores/${id}`),
+}
+
 export const historyService = {
   getAll: (params) => Promise.resolve({ data: [] }),
   getByClassroom: (classroomId, params) => Promise.resolve({ data: [] }),
