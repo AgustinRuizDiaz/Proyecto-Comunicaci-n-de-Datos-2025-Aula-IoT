@@ -210,4 +210,28 @@ router.post('/:id/heartbeat', async (req, res) => {
   }
 });
 
+// PUT /aulas/:id/sensores - Actualizar estados de sensores (temporal para simulación)
+router.put('/:id/sensores', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { luces_encendidas, ventanas_abiertas, personas_detectadas } = req.body;
+
+    await Aula.updateEstadosSensores(id, {
+      luces_encendidas,
+      ventanas_abiertas,
+      personas_detectadas
+    });
+
+    res.json({
+      success: true,
+      message: 'Estados de sensores actualizados'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;

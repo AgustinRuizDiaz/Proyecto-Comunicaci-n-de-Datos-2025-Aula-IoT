@@ -7,7 +7,6 @@ import { useAuth } from '../contexts/AuthContext';
 const Users = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [pagination, setPagination] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
     rol: ''
@@ -24,26 +23,19 @@ const Users = () => {
   });
   const [formErrors, setFormErrors] = useState({});
   const [deleteConfirm, setDeleteConfirm] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
 
   // Get auth context for debugging
   const { user, isAuthenticated, isAdmin } = useAuth();
 
-  // Load users with filters and pagination
-  const loadUsers = async (page = 1, search = searchTerm, filterParams = filters) => {
+  // Load users (solo una vez al cargar, como en Classrooms.jsx)
+  const loadUsers = async () => {
     try {
       setLoading(true);
 
-      const params = {
-        page,
-        search,
-        ...filterParams
-      };
-
-      console.log('🔍 Cargando usuarios con params:', params);
+      console.log('🔍 Cargando usuarios');
       console.log('🔐 Estado de autenticación:', { isAuthenticated, isAdmin, user: user?.legajo });
 
-      const response = await userService.getAll(params);
+      const response = await userService.getAll();
       console.log('✅ Respuesta completa de la API:', response);
       console.log('✅ Datos de usuarios recibidos:', response.data);
 
@@ -62,19 +54,10 @@ const Users = () => {
 
       console.log('✅ Usuarios procesados:', usersData);
       setUsers(usersData);
-      setPagination({
-        count: response.data.count || usersData.length,
-        next: response.data.next,
-        previous: response.data.previous,
-        current: page,
-        total_pages: Math.ceil((response.data.count || usersData.length) / 10)
-      });
-      setCurrentPage(page);
     } catch (error) {
       console.error('❌ Error loading users:', error);
       console.error('❌ Error details:', error.response?.data || error.message);
       setUsers([]);
-      setPagination(null);
     } finally {
       setLoading(false);
     }
@@ -84,27 +67,9 @@ const Users = () => {
     loadUsers();
   }, []);
 
-  // Reload users when filters change (but not on initial load)
-  useEffect(() => {
-    if (Object.values(filters).some(v => v)) {
-      loadUsers(1, searchTerm, filters);
-    }
-  }, [filters]);
-
-  // Debounced search
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (searchTerm !== undefined) {
-        loadUsers(1, searchTerm, filters);
-      }
-    }, 300);
-
-    return () => clearTimeout(timeoutId);
-  }, [searchTerm, filters]);
-
-  // Filter users based on search term and role
+  // Filter users based on search term and role (como en Classrooms.jsx)
   const filteredUsers = useMemo(() => {
-    let filtered = users;
+    let filtered = [...users];
 
     // Apply search filter
     if (searchTerm) {
@@ -128,6 +93,9 @@ const Users = () => {
         return false;
       });
     }
+
+    // Ordenar por legajo
+    filtered.sort((a, b) => a.legajo.localeCompare(b.legajo));
 
     return filtered;
   }, [users, searchTerm, filters]);
@@ -214,7 +182,7 @@ const Users = () => {
       setShowCreateModal(false);
       setEditingUser(null);
       resetForm();
-      loadUsers(currentPage);
+      loadUsers();
 
     } catch (error) {
       console.error('❌ Error guardando usuario:', error);
@@ -251,7 +219,7 @@ const Users = () => {
       await userService.delete(userId);
       console.log('✅ Usuario eliminado exitosamente');
       setDeleteConfirm(null);
-      loadUsers(currentPage);
+      loadUsers();
     } catch (error) {
       console.error('❌ Error eliminando usuario:', error);
       console.error('❌ Error details:', error.response?.data);
@@ -285,17 +253,18 @@ const Users = () => {
     setFormErrors({});
   };
 
-  // Handle pagination
-  const handlePageChange = (newPage) => {
-    loadUsers(newPage, searchTerm, filters);
-  };
-
   // Handle filter changes
   const handleFilterChange = (filterName, value) => {
-    const newFilters = { ...filters, [filterName]: value };
-    setFilters(newFilters);
-    loadUsers(1, searchTerm, newFilters);
+    setFilters({ ...filters, [filterName]: value });
   };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -482,43 +451,6 @@ const Users = () => {
                 </div>
               ))}
             </div>
-
-            {/* Pagination */}
-            {pagination && pagination.total_pages > 1 && (
-              <div className="mt-6 flex justify-center">
-                <div className="flex space-x-1">
-                  <button
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={!pagination.previous}
-                    className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Anterior
-                  </button>
-
-                  {Array.from({ length: pagination.total_pages }, (_, i) => i + 1).map((page) => (
-                    <button
-                      key={page}
-                      onClick={() => handlePageChange(page)}
-                      className={`px-3 py-2 border rounded-md text-sm font-medium ${
-                        page === currentPage
-                          ? 'bg-blue-600 text-white border-blue-600'
-                          : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  ))}
-
-                  <button
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={!pagination.next}
-                    className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Siguiente
-                  </button>
-                </div>
-              </div>
-            )}
 
             {/* Empty State */}
             {filteredUsers.length === 0 && !loading && (

@@ -49,6 +49,9 @@ class Aula {
           nombre,
           ip,
           ultima_senal,
+          luces_encendidas,
+          ventanas_abiertas,
+          personas_detectadas,
           created_at,
           updated_at
         FROM aulas
@@ -76,6 +79,9 @@ class Aula {
           nombre,
           ip,
           ultima_senal,
+          luces_encendidas,
+          ventanas_abiertas,
+          personas_detectadas,
           created_at,
           updated_at
         FROM aulas 
@@ -169,6 +175,26 @@ class Aula {
              updated_at = CURRENT_TIMESTAMP
          WHERE id = ?`,
         [id]
+      );
+      return true;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Actualizar estados de sensores (temporal para simulación)
+   */
+  static async updateEstadosSensores(id, { luces_encendidas, ventanas_abiertas, personas_detectadas }) {
+    try {
+      await db.run(
+        `UPDATE aulas 
+         SET luces_encendidas = ?,
+             ventanas_abiertas = ?,
+             personas_detectadas = ?,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [luces_encendidas ? 1 : 0, ventanas_abiertas ? 1 : 0, personas_detectadas ? 1 : 0, id]
       );
       return true;
     } catch (error) {

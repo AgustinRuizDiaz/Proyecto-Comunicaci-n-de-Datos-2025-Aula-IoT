@@ -26,6 +26,27 @@ const TrashIcon = () => (
   </svg>
 );
 
+// Iconos de sensores
+const LightBulbIcon = ({ active }) => (
+  <svg className={`h-6 w-6 ${active ? 'text-green-500' : 'text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+  </svg>
+);
+
+const WindowIcon = ({ active }) => (
+  <svg className={`h-6 w-6 ${active ? 'text-green-500' : 'text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <rect x="3" y="3" width="18" height="18" rx="2" strokeWidth={2} />
+    <line x1="12" y1="3" x2="12" y2="21" strokeWidth={2} />
+    <line x1="3" y1="12" x2="21" y2="12" strokeWidth={2} />
+  </svg>
+);
+
+const PersonIcon = ({ active }) => (
+  <svg className={`h-6 w-6 ${active ? 'text-green-500' : 'text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+  </svg>
+);
+
 const Classrooms = () => {
   const { user } = useAuth();
   const [aulas, setAulas] = useState([]);
@@ -138,6 +159,31 @@ const Classrooms = () => {
     }
   };
 
+  const handleToggleSensor = async (aulaId, sensorType) => {
+    try {
+      const aula = aulas.find(a => a.id === aulaId);
+      if (!aula) return;
+
+      const newState = {
+        luces_encendidas: aula.luces_encendidas ? 1 : 0,
+        ventanas_abiertas: aula.ventanas_abiertas ? 1 : 0,
+        personas_detectadas: aula.personas_detectadas ? 1 : 0
+      };
+
+      // Toggle el sensor específico (cambiar de 0 a 1 o de 1 a 0)
+      if (sensorType === 'luces') newState.luces_encendidas = aula.luces_encendidas ? 0 : 1;
+      if (sensorType === 'ventanas') newState.ventanas_abiertas = aula.ventanas_abiertas ? 0 : 1;
+      if (sensorType === 'personas') newState.personas_detectadas = aula.personas_detectadas ? 0 : 1;
+
+      console.log('Actualizando sensores:', { aulaId, sensorType, newState });
+      await aulaService.updateSensores(aulaId, newState);
+      loadAulas(); // Recargar para actualizar los iconos
+    } catch (err) {
+      console.error('Error actualizando sensor:', err);
+      alert('Error actualizando sensor: ' + (err.response?.data?.error || err.message));
+    }
+  };
+
   const handleDeleteAula = async (aulaId) => {
     if (!window.confirm('¿Estás seguro de que quieres eliminar esta aula?')) {
       return;
@@ -211,11 +257,70 @@ const Classrooms = () => {
           <ul className="divide-y divide-gray-200">
             {filteredAulas.map((aula) => (
               <li key={aula.id} className="hover:bg-gray-50 transition-colors">
-                <div className="px-6 py-4 flex items-center gap-3">
-                  <div className={`w-3 h-3 rounded-full ${aula.estado_conexion === 'online' ? 'bg-green-500' : 'bg-red-500'}`} title={aula.estado_conexion === 'online' ? 'En línea' : 'Fuera de línea'}></div>
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900">{aula.nombre}</h3>
-                    <p className="text-sm text-gray-500">IP: {aula.ip}</p>
+                <div className="px-6 py-4">
+                  {/* Layout responsive */}
+                  <div className="flex flex-col gap-3">
+                    {/* Fila superior: Nombre/IP + Botón e Iconos (desktop) */}
+                    <div className="flex items-center justify-between">
+                      {/* Nombre e IP */}
+                      <div className="flex items-center gap-3">
+                        <div className={`w-3 h-3 rounded-full flex-shrink-0 ${aula.estado_conexion === 'online' ? 'bg-green-500' : 'bg-red-500'}`} title={aula.estado_conexion === 'online' ? 'En línea' : 'Fuera de línea'}></div>
+                        <div>
+                          <h3 className="text-lg font-medium text-gray-900">{aula.nombre}</h3>
+                          <p className="text-sm text-gray-500">IP: {aula.ip}</p>
+                        </div>
+                      </div>
+
+                      {/* Derecha: Iconos + Botón (en desktop), solo iconos (en mobile) */}
+                      <div className="flex items-center gap-4">
+                        {/* Iconos de sensores (siempre visibles a la derecha) */}
+                        <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-1">
+                            <LightBulbIcon active={aula.luces_encendidas} />
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <WindowIcon active={aula.ventanas_abiertas} />
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <PersonIcon active={aula.personas_detectadas} />
+                          </div>
+                        </div>
+
+                        {/* Botón de control (solo visible en desktop, a la derecha de los iconos) */}
+                        <button
+                          onClick={() => handleToggleSensor(aula.id, 'luces')}
+                          className={`hidden md:block p-2 rounded-lg border transition-colors ${
+                            aula.luces_encendidas
+                              ? 'text-green-600 bg-green-50 hover:text-green-900 hover:bg-green-100 border-green-200'
+                              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50 border-gray-300'
+                          }`}
+                          title={aula.luces_encendidas ? 'Apagar luces' : 'Prender luces'}
+                        >
+                          {/* Icono clásico de power - más visible */}
+                          <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 2v6m-5.3-.8a8 8 0 1010.6 0" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Botón de control de luces (solo en mobile, full-width centrado debajo) */}
+                    <div className="flex md:hidden justify-center">
+                      <button
+                        onClick={() => handleToggleSensor(aula.id, 'luces')}
+                        className={`flex-1 p-2 rounded-lg border transition-colors ${
+                          aula.luces_encendidas
+                            ? 'text-green-600 bg-green-50 hover:text-green-900 hover:bg-green-100 border-green-200'
+                            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50 border-gray-300'
+                        }`}
+                        title={aula.luces_encendidas ? 'Apagar luces' : 'Prender luces'}
+                      >
+                        {/* Icono clásico de power - más visible en mobile */}
+                        <svg className="h-5 w-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 2v6m-5.3-.8a8 8 0 1010.6 0" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </li>

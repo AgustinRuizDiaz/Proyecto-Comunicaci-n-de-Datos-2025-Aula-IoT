@@ -87,6 +87,7 @@ export const aulaService = {
   update: (id, aulaData) => api.put(`/aulas/${id}`, aulaData),
   delete: (id) => api.delete(`/aulas/${id}`),
   heartbeat: (id) => api.post(`/aulas/${id}/heartbeat`),
+  updateSensores: (id, sensoresData) => api.put(`/aulas/${id}/sensores`, sensoresData),
 }
 
 export const classroomService = aulaService

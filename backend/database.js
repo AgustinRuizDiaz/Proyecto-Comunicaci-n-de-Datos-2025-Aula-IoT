@@ -107,6 +107,9 @@ class Database {
           nombre TEXT UNIQUE NOT NULL,
           ip TEXT UNIQUE NOT NULL,
           ultima_senal DATETIME,
+          luces_encendidas INTEGER DEFAULT 0,
+          ventanas_abiertas INTEGER DEFAULT 0,
+          personas_detectadas INTEGER DEFAULT 0,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
@@ -144,6 +147,9 @@ class Database {
           nombre TEXT UNIQUE NOT NULL,
           ip TEXT UNIQUE NOT NULL,
           ultima_senal DATETIME,
+          luces_encendidas INTEGER DEFAULT 0,
+          ventanas_abiertas INTEGER DEFAULT 0,
+          personas_detectadas INTEGER DEFAULT 0,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )

@@ -31,46 +31,44 @@ async function resetDatabase() {
       VALUES (?, ?, ?, ?, ?)
     `, ['OP001', 'Operario', 'Ejemplo', operarioPassword, 'operario']);
 
-    // Insertar aulas de ejemplo
+    // Insertar aulas de ejemplo (todas offline y con sensores apagados por defecto)
     console.log('📝 Insertando aulas de ejemplo...');
 
     await db.run(`
-      INSERT INTO aulas (nombre, ip, ultima_senal)
-      VALUES (?, ?, ?)
-    `, ['Aula 101', '192.168.1.101', new Date().toISOString()]);
+      INSERT INTO aulas (nombre, ip, ultima_senal, luces_encendidas, ventanas_abiertas, personas_detectadas)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `, ['Aula 101', '192.168.1.101', null, 0, 0, 0]);
 
     await db.run(`
-      INSERT INTO aulas (nombre, ip, ultima_senal)
-      VALUES (?, ?, ?)
-    `, ['Laboratorio A', '192.168.1.102', null]);
+      INSERT INTO aulas (nombre, ip, ultima_senal, luces_encendidas, ventanas_abiertas, personas_detectadas)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `, ['Laboratorio A', '192.168.1.102', null, 0, 0, 0]);
 
     await db.run(`
-      INSERT INTO aulas (nombre, ip)
-      VALUES (?, ?)
-    `, ['Aula 203', '192.168.1.103']);
+      INSERT INTO aulas (nombre, ip, ultima_senal, luces_encendidas, ventanas_abiertas, personas_detectadas)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `, ['Aula 203', '192.168.1.103', null, 0, 0, 0]);
 
-    // Crear aula online (señal reciente)
     await db.run(`
-      INSERT INTO aulas (nombre, ip, ultima_senal)
-      VALUES (?, ?, ?)
-    `, ['Aula 304', '192.168.1.104', new Date().toISOString()]);
+      INSERT INTO aulas (nombre, ip, ultima_senal, luces_encendidas, ventanas_abiertas, personas_detectadas)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `, ['Aula 304', '192.168.1.104', null, 0, 0, 0]);
 
-    // Crear aula offline (sin señal)
     await db.run(`
-      INSERT INTO aulas (nombre, ip)
-      VALUES (?, ?)
-    `, ['Laboratorio B', '192.168.1.105']);
+      INSERT INTO aulas (nombre, ip, ultima_senal, luces_encendidas, ventanas_abiertas, personas_detectadas)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `, ['Laboratorio B', '192.168.1.105', null, 0, 0, 0]);
 
     console.log('✅ Base de datos reiniciada correctamente');
     console.log('👥 Usuarios de ejemplo creados:');
     console.log('   - Administrador: ADMIN001 / admin123');
     console.log('   - Operario: OP001 / operario123');
-    console.log('🏫 Aulas de ejemplo creadas:');
-    console.log('   - Aula 101 (online)');
-    console.log('   - Laboratorio A (offline)');
-    console.log('   - Aula 203 (offline)');
-    console.log('   - Aula 304 (online)');
-    console.log('   - Laboratorio B (offline)');
+    console.log('🏫 Aulas de ejemplo creadas (todas offline y apagadas):');
+    console.log('   - Aula 101');
+    console.log('   - Laboratorio A');
+    console.log('   - Aula 203');
+    console.log('   - Aula 304');
+    console.log('   - Laboratorio B');
 
   } catch (error) {
     console.error('❌ Error reiniciando la base de datos:', error.message);
