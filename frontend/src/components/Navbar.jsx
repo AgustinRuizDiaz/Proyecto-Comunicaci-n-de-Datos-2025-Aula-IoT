@@ -36,10 +36,24 @@ const Navbar = () => {
             color: 'white',
             fontWeight: 'bold',
             fontSize: '1.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.5,
             '&:hover': { opacity: 0.9 }
           }}
         >
-          🎓 GestorAulas
+          {/* Logo de la universidad */}
+          <img 
+            src="/logo_utn.png" 
+            alt="UTN Logo" 
+            style={{ 
+              width: '32px', 
+              height: '32px',
+              filter: 'brightness(0) invert(1)', // Convierte a blanco
+              flexShrink: 0
+            }}
+          />
+          GestorAulas
         </Typography>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>

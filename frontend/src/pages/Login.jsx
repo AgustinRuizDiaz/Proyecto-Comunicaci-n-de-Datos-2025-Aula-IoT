@@ -9,10 +9,8 @@ import {
   Typography,
   Alert,
   Container,
-  Avatar,
   CssBaseline
 } from '@mui/material'
-import { LockOutlined as LockOutlinedIcon } from '@mui/icons-material'
 
 const Login = () => {
   const [credentials, setCredentials] = useState({
@@ -60,14 +58,24 @@ const Login = () => {
   }
 
   return (
-    <Container component="main" maxWidth="xs" sx={{ pt: 6 }}>
+    <Container 
+      component="main" 
+      maxWidth="xs" 
+      sx={{ 
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        py: 3
+      }}
+    >
       <CssBaseline />
       <Box
         sx={{
-          marginTop: 0,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
+          width: '100%'
         }}
       >
         <Paper
@@ -80,9 +88,29 @@ const Login = () => {
             width: '100%',
           }}
         >
-          <Avatar sx={{ m: 1, bgcolor: 'primary.main' }}>
-            <LockOutlinedIcon />
-          </Avatar>
+          <Box 
+            sx={{ 
+              m: 1, 
+              width: 56, 
+              height: 56, 
+              bgcolor: 'primary.main',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            {/* Logo de la universidad */}
+            <img 
+              src="/logo_utn.png" 
+              alt="UTN Logo" 
+              style={{ 
+                width: '36px', 
+                height: '36px',
+                filter: 'brightness(0) invert(1)' // Convierte a blanco
+              }}
+            />
+          </Box>
           <Typography component="h1" variant="h5" sx={{ mb: 3 }}>
             Gestor de Aulas IoT
           </Typography>
