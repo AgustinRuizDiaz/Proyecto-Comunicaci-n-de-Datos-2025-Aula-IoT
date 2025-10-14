@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Sensor = require('../models/Sensor');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
+const commandQueue = require('../commandQueue');
 
 // Aplicar autenticación a todas las rutas
 router.use(authenticateToken);
@@ -27,11 +28,37 @@ router.get('/', async (req, res) => {
 router.get('/aula/:id_aula', async (req, res) => {
   try {
     const { id_aula } = req.params;
+    const Aula = require('../models/Aula');
+    
+    // Obtener información del aula para verificar si está online
+    const aula = await Aula.findById(id_aula);
     const sensores = await Sensor.findByAulaId(id_aula);
+    
+    // Verificar si el aula está offline (más de 2 minutos sin señal)
+    let sensoresFinales = sensores;
+    if (aula && aula.ultima_senal) {
+      const now = new Date();
+      const signalDate = new Date(aula.ultima_senal);
+      const diffMinutes = (now - signalDate) / 60000;
+      
+      // Si el aula está offline, forzar todos los sensores a estado 0
+      if (diffMinutes >= 2) {
+        sensoresFinales = sensores.map(sensor => ({
+          ...sensor,
+          estado: 0
+        }));
+      }
+    } else if (!aula || !aula.ultima_senal) {
+      // Si nunca ha enviado señal, también forzar a 0
+      sensoresFinales = sensores.map(sensor => ({
+        ...sensor,
+        estado: 0
+      }));
+    }
     
     res.json({
       success: true,
-      data: sensores
+      data: sensoresFinales
     });
   } catch (error) {
     res.status(500).json({
@@ -201,14 +228,77 @@ router.patch('/:id/estado', async (req, res) => {
       });
     }
 
-    const sensor = await Sensor.updateEstado(id, estado);
+    // Obtener información del sensor
+    const sensorAntes = await Sensor.findById(id);
+    
+    // Obtener información del aula
+    const Aula = require('../models/Aula');
+    const aula = await Aula.findById(sensorAntes.id_aula);
 
+    // Si la petición viene con header especial 'x-esp32-update', actualizar directamente
+    const esDesdeESP32 = req.headers['x-esp32-update'] === 'true';
+    
+    if (esDesdeESP32 || !aula || !aula.ip) {
+      // Actualizar directamente (viene del ESP32 o no hay IP configurada)
+      const sensor = await Sensor.updateEstado(id, estado);
+      
+      return res.json({
+        success: true,
+        data: sensor,
+        message: 'Estado del sensor actualizado'
+      });
+    }
+
+    // Verificar si el aula está online antes de permitir cambios desde la app
+    if (aula.ultima_senal) {
+      const now = new Date();
+      const signalDate = new Date(aula.ultima_senal);
+      const diffMinutes = (now - signalDate) / 60000;
+      
+      if (diffMinutes >= 2) {
+        return res.status(503).json({
+          success: false,
+          error: 'El aula está fuera de línea. No se pueden cambiar los sensores.',
+          offline: true
+        });
+      }
+    } else {
+      return res.status(503).json({
+        success: false,
+        error: 'El aula nunca se ha conectado. No se pueden cambiar los sensores.',
+        offline: true
+      });
+    }
+
+    // Si viene desde la app web, enviar comando al ESP32 (NO actualizar BD todavía)
+    commandQueue.enqueueCommand(aula.ip, sensorAntes.pin, estado === 1 ? 'on' : 'off');
+    
+    // Enviar comando vía WebSocket en tiempo real (si el ESP32 está conectado)
+    const io = req.app.get('socketio');
+    if (io) {
+      const command = {
+        pin: sensorAntes.pin,
+        action: estado === 1 ? 'on' : 'off'
+      };
+      
+      const roomName = `esp32:${aula.ip}`;
+      const room = io.sockets.adapter.rooms.get(roomName);
+      const clientsInRoom = room ? room.size : 0;
+      
+      console.log(`⚡ Enviando comando a sala ${roomName} (${clientsInRoom} cliente(s)):`, command);
+      io.to(roomName).emit('esp32:command', command);
+    }
+    
+    // Responder sin actualizar BD (esperamos confirmación del ESP32)
     res.json({
       success: true,
-      data: sensor,
-      message: 'Estado del sensor actualizado'
+      message: 'Comando enviado al ESP32. Esperando confirmación...',
+      pending: true,
+      data: sensorAntes
     });
+
   } catch (error) {
+    console.error('❌ Error en PATCH /sensores/:id/estado:', error);
     if (error.message === 'Sensor no encontrado') {
       res.status(404).json({
         success: false,

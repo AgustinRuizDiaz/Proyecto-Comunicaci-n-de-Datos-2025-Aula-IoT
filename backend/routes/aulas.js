@@ -3,17 +3,85 @@ const router = express.Router();
 const Aula = require('../models/Aula');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
-// Aplicar middleware de autenticación a todas las rutas
+// ========== RUTAS PÚBLICAS (sin autenticación) para ESP32 ==========
+// POST /aulas/:id/heartbeat - Actualizar última señal (para dispositivos ESP32)
+router.post('/:id/heartbeat', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    await Aula.updateUltimaSenal(id);
+
+    res.json({
+      success: true,
+      message: 'Señal registrada',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// ========== RUTAS PROTEGIDAS (requieren autenticación) ==========
+// Aplicar middleware de autenticación a todas las rutas siguientes
 router.use(authenticateToken);
 
 // GET /aulas - Obtener todas las aulas (todos los usuarios autenticados)
 router.get('/', async (req, res) => {
   try {
     const aulas = await Aula.findAll();
+    const Sensor = require('../models/Sensor');
+    const db = require('../database');
+    
+    // Para cada aula, calcular el estado agregado de sensores
+    const aulasConSensores = await Promise.all(aulas.map(async (aula) => {
+      // Obtener todos los sensores del aula
+      const sensores = await Sensor.findByAulaId(aula.id);
+      
+      // Verificar si el aula está offline
+      let isOffline = false;
+      if (aula.ultima_senal) {
+        const now = new Date();
+        const signalDate = new Date(aula.ultima_senal);
+        const diffMinutes = (now - signalDate) / 60000;
+        isOffline = diffMinutes >= 2;
+      } else {
+        isOffline = true; // Nunca ha enviado señal
+      }
+      
+      // Si está offline, todos los sensores en 0
+      const sensoresFinales = isOffline 
+        ? sensores.map(s => ({ ...s, estado: 0 }))
+        : sensores;
+      
+      // Calcular estados agregados
+      const lucesEncendidas = sensoresFinales.some(s => 
+        s.tipo === 'Sensor de luz' && s.estado === 1
+      );
+      
+      const ventanasAbiertas = sensoresFinales.some(s => 
+        s.tipo === 'Sensor de ventana' && s.estado === 1
+      );
+      
+      const personasDetectadas = sensoresFinales.some(s => 
+        s.tipo === 'Sensor de movimiento' && s.estado === 1
+      );
+      
+      return {
+        ...aula,
+        luces_encendidas: lucesEncendidas ? 1 : 0,
+        ventanas_abiertas: ventanasAbiertas ? 1 : 0,
+        personas_detectadas: personasDetectadas ? 1 : 0,
+        isOffline
+      };
+    }));
+    
     res.json({
       success: true,
-      data: aulas,
-      count: aulas.length
+      data: aulasConSensores,
+      count: aulasConSensores.length
     });
   } catch (error) {
     res.status(500).json({
@@ -188,25 +256,6 @@ router.delete('/:id', requireAdmin, async (req, res) => {
         error: error.message
       });
     }
-  }
-});
-
-// POST /aulas/:id/heartbeat - Actualizar última señal (para ESP32)
-router.post('/:id/heartbeat', async (req, res) => {
-  try {
-    const { id } = req.params;
-    
-    await Aula.updateUltimaSenal(id);
-
-    res.json({
-      success: true,
-      message: 'Señal registrada'
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
   }
 });
 

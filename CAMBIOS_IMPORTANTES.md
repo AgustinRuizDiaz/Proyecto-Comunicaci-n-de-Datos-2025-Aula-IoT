@@ -1,7 +1,68 @@
 # 🔧 CAMBIOS IMPORTANTES - Limpieza y Simplificación del Proyecto
 
-**Fecha:** 2025-10-10  
-**Estado:** Sistema simplificado y funcional
+**Última actualización:** 2025-10-14  
+**Estado:** Sistema simplificado y funcional con polling optimizado
+
+---
+
+## 🆕 NUEVO: Sensores en Estado 0 cuando Aula está Offline (14 Oct 2025)
+
+### ✅ Implementación
+Ahora cuando un aula está **Fuera de línea** (sin señal por más de 2 minutos):
+- ✅ Todos los sensores se muestran automáticamente en estado **0 (apagado)**
+- ✅ Los botones de control están **deshabilitados** (gris, no clickeables)
+- ✅ Tooltip muestra "Aula fuera de línea" al pasar el mouse
+- ✅ El backend también bloquea cambios como capa extra de seguridad
+- ✅ No hay mensajes molestos, el UI es claro visualmente
+
+### 📝 Cambios Técnicos
+
+#### Backend (`backend/routes/sensores.js`)
+1. **GET `/sensores/aula/:id_aula`**: 
+   - Verifica si el aula está offline
+   - Si está offline → retorna todos los sensores con `estado: 0`
+   - Si nunca ha enviado señal → retorna todos con `estado: 0`
+
+2. **PATCH `/sensores/:id/estado`**:
+   - Valida si el aula está online antes de encolar comandos
+   - Si está offline → retorna error 503 con mensaje descriptivo
+   - Bloquea cambios desde la app cuando el aula está offline
+
+#### Frontend (`frontend/src/pages/AulaDetail.jsx`)
+1. **`loadSensores()`**:
+   - Verifica estado online del aula
+   - Fuerza sensores a estado 0 si está offline
+   
+2. **`handleToggleSensorEstado()`**:
+   - Si el aula está offline, no hace nada (botón ya deshabilitado)
+   
+3. **Botón de control de sensor**:
+   - `disabled={!isOnline(aula?.ultima_senal)}` → Deshabilitado si offline
+   - Estilos visuales: gris, cursor-not-allowed, opacity reducida
+   - Tooltip: "Aula fuera de línea" cuando está deshabilitado
+
+### 🎯 Comportamiento
+
+| Estado del Aula | Sensores Mostrados | Botones | Tooltip | Cambios Permitidos |
+|-----------------|-------------------|---------|---------|-------------------|
+| **Online** (<2 min) | Estado real | ✅ Habilitados | "Encender/Apagar" | ✅ Sí |
+| **Offline** (≥2 min) | Todos en 0 | ❌ Deshabilitados | "Aula fuera de línea" | ❌ No |
+| **Sin señal** | Todos en 0 | ❌ Deshabilitados | "Aula fuera de línea" | ❌ No |
+
+---
+
+## 🆕 Fix de Recarga Innecesaria (14 Oct 2025)
+
+### ❌ Problema
+La página de detalle del aula se recargaba visualmente cada 3-10 segundos debido al polling automático, causando parpadeo molesto.
+
+### ✅ Solución
+Las actualizaciones automáticas ahora son **silenciosas** (sin loading spinner), mientras que las acciones del usuario sí muestran feedback visual.
+
+### 📝 Cambios Técnicos
+- `loadAulaData(showLoading)` y `loadSensores(showLoading)` ahora aceptan parámetro
+- **Polling**: `showLoading = false` → Sin parpadeo
+- **Acciones usuario**: `showLoading = true` → Con feedback visual
 
 ---
 

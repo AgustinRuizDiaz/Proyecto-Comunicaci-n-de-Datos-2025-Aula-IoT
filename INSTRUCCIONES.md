@@ -34,6 +34,10 @@ npm run dev
   - Sensor de movimiento (solo lectura)
   - Crear/Editar/Eliminar sensores (solo admin)
   - Estados actualizables desde ESP32
+- ✅ **Simulador ESP32** - Simulación de dispositivo IoT
+  - Abrir `esp32/simulador.html` en el navegador
+  - Conectarse a un aula y simular cambios en sensores
+  - Ver documentación completa en `esp32/README.md`
 - ⏳ **Historial** - Pendiente de implementación
 
 ---

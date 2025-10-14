@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { aulaService, sensorService } from '../services/api';
+import { useSocket } from '../contexts/SocketContext';
 
 export default function AulaDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
+  const socket = useSocket();
   
   const [aula, setAula] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -32,12 +34,21 @@ export default function AulaDetail() {
   const [savingSensor, setSavingSensor] = useState(false);
 
   useEffect(() => {
-    loadAulaData();
+    loadAulaData(true); // Primera carga con loading
+    
+    // Polling para actualizar estado del aula (online/offline) cada 10 segundos
+    const aulaPollingInterval = setInterval(() => {
+      loadAulaData(false); // Actualizaciones silenciosas sin loading
+    }, 10000);
+    
+    return () => clearInterval(aulaPollingInterval);
   }, [id]);
 
-  const loadAulaData = async () => {
+  const loadAulaData = async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) {
+        setLoading(true);
+      }
       setError(null);
       const response = await aulaService.getById(id);
       
@@ -57,7 +68,9 @@ export default function AulaDetail() {
       console.error('Error cargando aula:', err);
       setError('No se pudo cargar la información del aula');
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   };
 
@@ -70,7 +83,7 @@ export default function AulaDetail() {
     try {
       setSaving(true);
       await aulaService.update(id, formData);
-      await loadAulaData();
+      await loadAulaData(true); // Mostrar loading después de guardar
       setIsEditing(false);
     } catch (err) {
       console.error('Error guardando cambios:', err);
@@ -121,24 +134,60 @@ export default function AulaDetail() {
   };
 
   // Funciones para sensores
-  const loadSensores = async () => {
+  const loadSensores = async (showLoading = true) => {
     try {
-      setLoadingSensores(true);
+      if (showLoading) {
+        setLoadingSensores(true);
+      }
       const response = await sensorService.getByAulaId(id);
-      const sensoresData = response.data?.data || response.data || [];
+      let sensoresData = response.data?.data || response.data || [];
+      
+      // Si el aula está offline, forzar todos los sensores a estado 0
+      if (aula && !isOnline(aula.ultima_senal)) {
+        sensoresData = sensoresData.map(sensor => ({
+          ...sensor,
+          estado: 0
+        }));
+      }
+      
       setSensores(sensoresData);
     } catch (err) {
       console.error('Error cargando sensores:', err);
     } finally {
-      setLoadingSensores(false);
+      if (showLoading) {
+        setLoadingSensores(false);
+      }
     }
   };
 
   useEffect(() => {
     if (id && aula) {
-      loadSensores();
+      loadSensores(true); // Primera carga con loading
+      
+      // Escuchar cambios de sensores vía WebSocket en tiempo real
+      if (socket) {
+        socket.on('sensorUpdate', (data) => {
+          if (data.id_aula === parseInt(id)) {
+            console.log('⚡ Cambio de sensor detectado vía WebSocket:', data);
+            
+            // Actualizar solo el sensor específico, no recargar todos
+            setSensores(prevSensores => prevSensores.map(sensor => 
+              sensor.id === data.id 
+                ? { ...sensor, estado: data.estado }
+                : sensor
+            ));
+          }
+        });
+      }
+      
+      // Limpiar al desmontar
+      return () => {
+        if (socket) {
+          socket.off('sensorUpdate');
+        }
+      };
     }
-  }, [id, aula]);
+  }, [id, aula, socket]);
 
   const handleSensorInputChange = (e) => {
     const { name, value } = e.target;
@@ -228,12 +277,29 @@ export default function AulaDetail() {
   };
 
   const handleToggleSensorEstado = async (sensorId, estadoActual) => {
+    // Si el aula está offline, no hacer nada (el botón ya estará deshabilitado)
+    if (aula && !isOnline(aula.ultima_senal)) {
+      return;
+    }
+    
     try {
       const nuevoEstado = estadoActual === 1 ? 0 : 1;
+      
+      // Actualizar estado localmente de inmediato (optimistic update)
+      setSensores(prev => prev.map(s => 
+        s.id === sensorId ? { ...s, estado: nuevoEstado } : s
+      ));
+      
+      // Enviar al servidor (WebSocket se encargará de actualizar a todos)
       await sensorService.updateEstado(sensorId, nuevoEstado);
-      await loadSensores();
+      
+      // NO recargar - el WebSocket actualizará cuando el ESP32 confirme
     } catch (err) {
       console.error('Error cambiando estado del sensor:', err);
+      // Revertir cambio optimista en caso de error
+      setSensores(prev => prev.map(s => 
+        s.id === sensorId ? { ...s, estado: estadoActual } : s
+      ));
       alert('Error al cambiar el estado del sensor');
     }
   };
@@ -411,12 +477,12 @@ export default function AulaDetail() {
             {isAdmin && (
               <button
                 onClick={handleAddSensor}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center space-x-2"
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center md:space-x-2"
               >
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                <span>Agregar Sensor</span>
+                <span className="hidden md:inline ml-2">Agregar Sensor</span>
               </button>
             )}
           </div>
@@ -467,12 +533,19 @@ export default function AulaDetail() {
                             e.stopPropagation();
                             handleToggleSensorEstado(sensor.id, sensor.estado);
                           }}
+                          disabled={!isOnline(aula?.ultima_senal)}
                           className={`p-2 rounded-lg border transition-colors ${
-                            sensor.estado === 1
+                            !isOnline(aula?.ultima_senal)
+                              ? 'text-gray-400 bg-gray-100 border-gray-200 cursor-not-allowed opacity-50'
+                              : sensor.estado === 1
                               ? 'text-green-600 bg-green-50 hover:text-green-900 hover:bg-green-100 border-green-200'
                               : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50 border-gray-300'
                           }`}
-                          title={sensor.estado === 1 ? 'Apagar' : 'Encender'}
+                          title={
+                            !isOnline(aula?.ultima_senal) 
+                              ? 'Aula fuera de línea' 
+                              : sensor.estado === 1 ? 'Apagar' : 'Encender'
+                          }
                         >
                           <svg className="h-5 w-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 2v6m-5.3-.8a8 8 0 1010.6 0" />

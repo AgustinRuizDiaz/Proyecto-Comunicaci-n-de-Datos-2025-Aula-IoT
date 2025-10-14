@@ -1,7 +1,8 @@
 ﻿import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { aulaService } from '../services/api';
+import { aulaService, sensorService } from '../services/api';
+import { useSocket } from '../contexts/SocketContext';
 
 const PlusIcon = () => (
   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -51,6 +52,7 @@ const PersonIcon = ({ active }) => (
 const Classrooms = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const socket = useSocket();
   const [aulas, setAulas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -59,9 +61,11 @@ const Classrooms = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingAula, setEditingAula] = useState(null);
 
-  const loadAulas = async () => {
+  const loadAulas = async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) {
+        setLoading(true);
+      }
       setError(null);
       const response = await aulaService.getAll();
       
@@ -85,13 +89,58 @@ const Classrooms = () => {
       console.error('Error cargando aulas:', err);
       setError('Error cargando aulas: ' + (err.response?.data?.message || err.message));
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    loadAulas();
-  }, []);
+    loadAulas(true); // Primera carga con loading
+    
+    // Escuchar actualizaciones en tiempo real vía WebSocket
+    if (socket) {
+      socket.on('sensorUpdate', (data) => {
+        // Actualizar solo el aula afectada, no recargar todo
+        setAulas(prevAulas => prevAulas.map(aula => {
+          if (aula.id === data.id_aula) {
+            // Actualizar el estado agregado según el tipo de sensor
+            const updatedAula = { ...aula };
+            
+            if (data.tipo === 'Sensor de luz') {
+              // Si hay AL MENOS una luz encendida, mostrar como encendida
+              updatedAula.luces_encendidas = data.estado;
+            } else if (data.tipo === 'Sensor de ventana') {
+              updatedAula.ventanas_abiertas = data.estado;
+            } else if (data.tipo === 'Sensor de movimiento') {
+              updatedAula.personas_detectadas = data.estado;
+            }
+            
+            return updatedAula;
+          }
+          return aula;
+        }));
+      });
+    }
+    
+    return () => {
+      if (socket) {
+        socket.off('sensorUpdate');
+      }
+    };
+  }, [socket]);
+
+  // Función para verificar si un aula está online
+  const isOnline = (aula) => {
+    if (!aula || aula.isOffline !== undefined) {
+      return !aula?.isOffline;
+    }
+    if (!aula.ultima_senal) return false;
+    const now = new Date();
+    const signalDate = new Date(aula.ultima_senal);
+    const diffMinutes = (now - signalDate) / 60000;
+    return diffMinutes < 2;
+  };
 
   // Filtrar aulas en el cliente (como en Users.jsx)
   const filteredAulas = useMemo(() => {
@@ -162,27 +211,50 @@ const Classrooms = () => {
   };
 
   const handleToggleSensor = async (aulaId, sensorType) => {
+    // Verificar si el aula está offline
+    const aula = aulas.find(a => a.id === aulaId);
+    if (!aula || !isOnline(aula)) {
+      return; // No hacer nada si está offline (botón ya está deshabilitado)
+    }
+
     try {
-      const aula = aulas.find(a => a.id === aulaId);
-      if (!aula) return;
-
-      const newState = {
-        luces_encendidas: aula.luces_encendidas ? 1 : 0,
-        ventanas_abiertas: aula.ventanas_abiertas ? 1 : 0,
-        personas_detectadas: aula.personas_detectadas ? 1 : 0
-      };
-
-      // Toggle el sensor específico (cambiar de 0 a 1 o de 1 a 0)
-      if (sensorType === 'luces') newState.luces_encendidas = aula.luces_encendidas ? 0 : 1;
-      if (sensorType === 'ventanas') newState.ventanas_abiertas = aula.ventanas_abiertas ? 0 : 1;
-      if (sensorType === 'personas') newState.personas_detectadas = aula.personas_detectadas ? 0 : 1;
-
-      console.log('Actualizando sensores:', { aulaId, sensorType, newState });
-      await aulaService.updateSensores(aulaId, newState);
-      loadAulas(); // Recargar para actualizar los iconos
+      // Obtener todos los sensores del aula
+      const response = await sensorService.getByAulaId(aulaId);
+      const sensores = response.data?.data || response.data || [];
+      
+      // Filtrar sensores según el tipo
+      let sensoresFiltrados = [];
+      if (sensorType === 'luces') {
+        sensoresFiltrados = sensores.filter(s => s.tipo === 'Sensor de luz');
+      } else if (sensorType === 'ventanas') {
+        sensoresFiltrados = sensores.filter(s => s.tipo === 'Sensor de ventana');
+      } else if (sensorType === 'personas') {
+        sensoresFiltrados = sensores.filter(s => s.tipo === 'Sensor de movimiento');
+      }
+      
+      if (sensoresFiltrados.length === 0) {
+        console.warn(`No hay sensores de tipo ${sensorType} en el aula ${aulaId}`);
+        return;
+      }
+      
+      // Determinar nuevo estado: si alguno está encendido, apagar todos; si todos están apagados, encender todos
+      const algunoEncendido = sensoresFiltrados.some(s => s.estado === 1);
+      const nuevoEstado = algunoEncendido ? 0 : 1;
+      
+      // Actualizar todos los sensores de ese tipo
+      await Promise.all(
+        sensoresFiltrados.map(sensor => 
+          sensorService.updateEstado(sensor.id, nuevoEstado)
+        )
+      );
+      
+      // Recargar aulas para actualizar los iconos
+      await loadAulas(false);
     } catch (err) {
       console.error('Error actualizando sensor:', err);
-      alert('Error actualizando sensor: ' + (err.response?.data?.error || err.message));
+      if (!err.response?.data?.offline) {
+        alert('Error actualizando sensor: ' + (err.response?.data?.error || err.message));
+      }
     }
   };
 
@@ -298,12 +370,19 @@ const Classrooms = () => {
                             e.stopPropagation();
                             handleToggleSensor(aula.id, 'luces');
                           }}
+                          disabled={!isOnline(aula)}
                           className={`hidden md:block p-2 rounded-lg border transition-colors ${
-                            aula.luces_encendidas
+                            !isOnline(aula)
+                              ? 'text-gray-400 bg-gray-100 border-gray-200 cursor-not-allowed opacity-50'
+                              : aula.luces_encendidas
                               ? 'text-green-600 bg-green-50 hover:text-green-900 hover:bg-green-100 border-green-200'
                               : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50 border-gray-300'
                           }`}
-                          title={aula.luces_encendidas ? 'Apagar luces' : 'Prender luces'}
+                          title={
+                            !isOnline(aula)
+                              ? 'Aula fuera de línea'
+                              : aula.luces_encendidas ? 'Apagar luces' : 'Prender luces'
+                          }
                         >
                           {/* Icono clásico de power - más visible */}
                           <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -320,12 +399,19 @@ const Classrooms = () => {
                           e.stopPropagation();
                           handleToggleSensor(aula.id, 'luces');
                         }}
+                        disabled={!isOnline(aula)}
                         className={`flex-1 p-2 rounded-lg border transition-colors ${
-                          aula.luces_encendidas
+                          !isOnline(aula)
+                            ? 'text-gray-400 bg-gray-100 border-gray-200 cursor-not-allowed opacity-50'
+                            : aula.luces_encendidas
                             ? 'text-green-600 bg-green-50 hover:text-green-900 hover:bg-green-100 border-green-200'
                             : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50 border-gray-300'
                         }`}
-                        title={aula.luces_encendidas ? 'Apagar luces' : 'Prender luces'}
+                        title={
+                          !isOnline(aula)
+                            ? 'Aula fuera de línea'
+                            : aula.luces_encendidas ? 'Apagar luces' : 'Prender luces'
+                        }
                       >
                         {/* Icono clásico de power - más visible en mobile */}
                         <svg className="h-5 w-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">

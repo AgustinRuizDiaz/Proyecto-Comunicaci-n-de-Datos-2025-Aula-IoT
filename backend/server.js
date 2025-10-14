@@ -35,21 +35,39 @@ async function initializeServer() {
     app.use(cors());
     app.use(express.json());
 
+    // Hacer Socket.IO accesible en todas las rutas
+    app.set('socketio', io);
+
     // Importar rutas modulares
     const usuarioRoutes = require('./routes/usuarios');
     const authRoutes = require('./routes/auth');
     const aulaRoutes = require('./routes/aulas');
     const sensorRoutes = require('./routes/sensores');
+    const esp32Routes = require('./routes/esp32');
 
     // Usar rutas modulares
     app.use('/usuarios', usuarioRoutes);
     app.use('/auth', authRoutes);
     app.use('/aulas', aulaRoutes);
     app.use('/sensores', sensorRoutes);
+    app.use('/esp32', esp32Routes); // Rutas para ESP32 (sin autenticación)
 
     // Socket.IO connection handling
     io.on('connection', (socket) => {
       console.log('✅ Nuevo cliente conectado:', socket.id);
+
+      // Manejar identificación de ESP32
+      socket.on('esp32:identify', (data) => {
+        const { ip } = data;
+        console.log(`🔌 ESP32 identificado: ${ip} (socket: ${socket.id})`);
+        
+        // Unirse a una sala específica para este ESP32
+        socket.join(`esp32:${ip}`);
+        console.log(`  ✅ ESP32 ${ip} unido a sala: esp32:${ip}`);
+        
+        // Confirmar identificación
+        socket.emit('esp32:identified', { ip, socketId: socket.id });
+      });
 
       socket.on('disconnect', () => {
         console.log('❌ Cliente desconectado:', socket.id);
