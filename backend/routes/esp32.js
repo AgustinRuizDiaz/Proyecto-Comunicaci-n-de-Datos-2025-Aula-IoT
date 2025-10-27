@@ -2,7 +2,9 @@ const express = require('express');
 const router = express.Router();
 const Aula = require('../models/Aula');
 const Sensor = require('../models/Sensor');
+const Registro = require('../models/Registro');
 const commandQueue = require('../commandQueue');
+const recentChanges = require('../recentChanges');
 
 // POST /esp32/data - Recibir datos del ESP32 (sin autenticación)
 router.post('/data', async (req, res) => {
@@ -57,9 +59,46 @@ router.post('/data', async (req, res) => {
         console.log(`  🔍 Sensor encontrado: ${sensor.tipo} (ID: ${sensor.id}, Pin: ${pin})`);
         console.log(`     Estado anterior: ${sensor.estado} → Nuevo estado: ${estado}`);
         
+        // Verificar si el estado realmente cambió
+        const estadoCambio = sensor.estado !== estado;
+        
         // Actualizar estado del sensor
         const sensorActualizado = await Sensor.updateEstado(sensor.id, estado);
         console.log(`  ✅ Sensor pin ${pin} actualizado exitosamente a estado ${estado}`);
+        
+        // Verificar si debemos ignorar este update (fue iniciado por un usuario hace poco)
+        const debeIgnorar = recentChanges.shouldIgnoreESP32Update(sensor.id, estado);
+        
+        // Verificar si es un duplicado externo (mismo sensor, mismo estado en los últimos 3 segundos)
+        const esDuplicadoExterno = recentChanges.isExternalDuplicate(sensor.id, estado);
+        
+        // Crear registro solo si:
+        // 1. El estado cambió
+        // 2. NO es confirmación de cambio de usuario
+        // 3. NO es un duplicado externo
+        if (estadoCambio && !debeIgnorar && !esDuplicadoExterno) {
+          try {
+            await Registro.create({
+              id_sensor: sensor.id,
+              tipo_actuador: 'externo',
+              id_usuario: null,
+              estado: estado
+            });
+            console.log(`  📝 Registro creado: Cambio externo en sensor ${sensor.id} (pin ${pin}) a estado ${estado}`);
+            
+            // Registrar este cambio externo para evitar duplicados futuros
+            recentChanges.recordExternalChange(sensor.id, estado);
+          } catch (error) {
+            console.error('  ⚠️ Error creando registro:', error.message);
+            // No fallar la actualización del sensor por error en registro
+          }
+        } else if (estadoCambio && debeIgnorar) {
+          console.log(`  ℹ️ Cambio detectado pero es confirmación de cambio de usuario, no se crea registro duplicado`);
+        } else if (estadoCambio && esDuplicadoExterno) {
+          console.log(`  ℹ️ Cambio detectado pero es duplicado externo reciente, no se crea registro`);
+        } else {
+          console.log(`  ℹ️ Estado sin cambios, no se crea registro`);
+        }
         
         // Notificar a todos los clientes conectados vía WebSocket
         const io = req.app.get('socketio');

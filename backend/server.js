@@ -16,7 +16,7 @@ const io = new Server(server, {
   }
 });
 
-const PORT = process.env.PORT || 3002;
+const PORT = process.env.PORT || 3003;
 
 // Inicializar base de datos antes de iniciar el servidor
 async function initializeServer() {
@@ -44,6 +44,7 @@ async function initializeServer() {
     const aulaRoutes = require('./routes/aulas');
     const sensorRoutes = require('./routes/sensores');
     const esp32Routes = require('./routes/esp32');
+    const registroRoutes = require('./routes/registros');
 
     // Usar rutas modulares
     app.use('/usuarios', usuarioRoutes);
@@ -51,6 +52,7 @@ async function initializeServer() {
     app.use('/aulas', aulaRoutes);
     app.use('/sensores', sensorRoutes);
     app.use('/esp32', esp32Routes); // Rutas para ESP32 (sin autenticación)
+    app.use('/api/registros', registroRoutes); // Rutas para registros (con autenticación)
 
     // Socket.IO connection handling
     io.on('connection', (socket) => {
@@ -102,9 +104,10 @@ async function initializeServer() {
       });
     });
 
-    // Iniciar servidor con Socket.IO
-    server.listen(PORT, () => {
+    // Iniciar servidor con Socket.IO en todas las interfaces de red
+    server.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
+      console.log(`🌐 Accesible desde la red en http://192.168.0.11:${PORT}`);
       console.log(`🔌 Socket.IO habilitado en ws://localhost:${PORT}`);
       console.log(`📋 Rutas disponibles:`);
       console.log(`   GET, POST, PUT, DELETE /usuarios`);

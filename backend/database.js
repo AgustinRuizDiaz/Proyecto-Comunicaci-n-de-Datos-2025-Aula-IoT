@@ -81,6 +81,7 @@ class Database {
   async cleanAndRecreate() {
     try {
       // Eliminar tablas existentes si existen
+      await this.run(`DROP TABLE IF EXISTS registros`);
       await this.run(`DROP TABLE IF EXISTS sensores`);
       await this.run(`DROP TABLE IF EXISTS dispositivos`);
       await this.run(`DROP TABLE IF EXISTS aulas`);
@@ -128,6 +129,20 @@ class Database {
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (id_aula) REFERENCES aulas(id) ON DELETE CASCADE
+        )
+      `);
+
+      // Crear tabla de registros
+      await this.run(`
+        CREATE TABLE registros (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id_sensor INTEGER NOT NULL,
+          tipo_actuador TEXT NOT NULL CHECK (tipo_actuador IN ('usuario', 'inactividad', 'externo')),
+          id_usuario INTEGER,
+          fecha_hora DATETIME DEFAULT CURRENT_TIMESTAMP,
+          estado INTEGER NOT NULL,
+          FOREIGN KEY (id_sensor) REFERENCES sensores(id) ON DELETE CASCADE,
+          FOREIGN KEY (id_usuario) REFERENCES usuarios(id) ON DELETE SET NULL
         )
       `);
 
@@ -183,6 +198,20 @@ class Database {
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (id_aula) REFERENCES aulas(id) ON DELETE CASCADE
+        )
+      `);
+
+      // Crear tabla de registros
+      await this.run(`
+        CREATE TABLE IF NOT EXISTS registros (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id_sensor INTEGER NOT NULL,
+          tipo_actuador TEXT NOT NULL CHECK (tipo_actuador IN ('usuario', 'inactividad', 'externo')),
+          id_usuario INTEGER,
+          fecha_hora DATETIME DEFAULT CURRENT_TIMESTAMP,
+          estado INTEGER NOT NULL,
+          FOREIGN KEY (id_sensor) REFERENCES sensores(id) ON DELETE CASCADE,
+          FOREIGN KEY (id_usuario) REFERENCES usuarios(id) ON DELETE SET NULL
         )
       `);
 

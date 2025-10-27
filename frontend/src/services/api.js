@@ -102,12 +102,22 @@ export const sensorService = {
   delete: (id) => api.delete(`/sensores/${id}`),
 }
 
+export const registroService = {
+  getAll: (params = {}) => api.get('/api/registros', { params }),
+  getById: (id) => api.get(`/api/registros/${id}`),
+  getBySensorId: (id_sensor, params = {}) => api.get(`/api/registros/sensor/${id_sensor}`, { params }),
+  getByAulaId: (id_aula, params = {}) => api.get(`/api/registros/aula/${id_aula}`, { params }),
+}
+
 export const historyService = {
-  getAll: (params) => Promise.resolve({ data: [] }),
-  getByClassroom: (classroomId, params) => Promise.resolve({ data: [] }),
-  getBySensor: (sensorId, params) => Promise.resolve({ data: [] }),
+  getAll: (params) => registroService.getAll(params),
+  getByClassroom: (classroomId, params) => registroService.getByAulaId(classroomId, params),
+  getBySensor: (sensorId, params) => registroService.getBySensorId(sensorId, params),
   getEstadisticas: (params) => Promise.resolve({ data: {} }),
-  exportarCSV: (params) => Promise.reject(new Error('Funcionalidad no disponible')),
+  exportarCSV: (params = {}) => api.get('/api/registros/export/csv', { 
+    params,
+    responseType: 'blob' // Importante para descargar archivos
+  }),
 }
 
 export default api

@@ -1,8 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const Sensor = require('../models/Sensor');
+const Registro = require('../models/Registro');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 const commandQueue = require('../commandQueue');
+const recentChanges = require('../recentChanges');
 
 // Aplicar autenticación a todas las rutas
 router.use(authenticateToken);
@@ -242,6 +244,20 @@ router.patch('/:id/estado', async (req, res) => {
       // Actualizar directamente (viene del ESP32 o no hay IP configurada)
       const sensor = await Sensor.updateEstado(id, estado);
       
+      // Crear registro tipo "externo" (cambio físico desde ESP32)
+      try {
+        await Registro.create({
+          id_sensor: id,
+          tipo_actuador: 'externo',
+          id_usuario: null,
+          estado: estado
+        });
+        console.log(`  📝 Registro creado: Cambio externo en sensor ${id} a estado ${estado}`);
+      } catch (error) {
+        console.error('  ⚠️ Error creando registro:', error.message);
+        // No fallar la actualización del sensor por error en registro
+      }
+      
       return res.json({
         success: true,
         data: sensor,
@@ -272,6 +288,23 @@ router.patch('/:id/estado', async (req, res) => {
 
     // Si viene desde la app web, enviar comando al ESP32 (NO actualizar BD todavía)
     commandQueue.enqueueCommand(aula.ip, sensorAntes.pin, estado === 1 ? 'on' : 'off');
+    
+    // Registrar este cambio para evitar duplicados cuando el ESP32 confirme
+    recentChanges.recordUserChange(parseInt(id), estado, req.user.id);
+    
+    // Crear registro tipo "usuario" (cambio manual desde la app)
+    try {
+      await Registro.create({
+        id_sensor: id,
+        tipo_actuador: 'usuario',
+        id_usuario: req.user.id, // ID del usuario autenticado
+        estado: estado
+      });
+      console.log(`  📝 Registro creado: Cambio por usuario ${req.user.legajo} en sensor ${id} a estado ${estado}`);
+    } catch (error) {
+      console.error('  ⚠️ Error creando registro:', error.message);
+      // No fallar el envío del comando por error en registro
+    }
     
     // Enviar comando vía WebSocket en tiempo real (si el ESP32 está conectado)
     const io = req.app.get('socketio');
