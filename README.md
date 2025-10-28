@@ -2,7 +2,7 @@
 
 **Universidad Nacional del Nordeste (UNNE)**  
 **Materia:** Comunicación de Datos 2025  
-**Autor:** Agustín Ruiz Díaz
+**Autor:** Iván Dietta
 
 Sistema full-stack para monitoreo y control de aulas inteligentes con dispositivos ESP32.
 

@@ -72,6 +72,8 @@ const AulaCard = ({
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [countdownActive, setCountdownActive] = useState(false);
   const [countdownTime, setCountdownTime] = useState(0);
+  // Estado para trackear si hay una operación pendiente
+  const [isPending, setIsPending] = useState(false);
 
   // Hook WebSocket para esta aula específica
   const {
@@ -86,6 +88,14 @@ const AulaCard = ({
   useEffect(() => {
     setRealTimeAula(aula);
   }, [aula]);
+
+  // Escuchar actualizaciones de sensores para quitar estado pendiente
+  useEffect(() => {
+    if (sensorUpdates && sensorUpdates.length > 0) {
+      // Si hay actualizaciones de sensores, quitar el estado pendiente
+      setIsPending(false);
+    }
+  }, [sensorUpdates]);
 
   // Función para manejar actualizaciones optimistas del estado del aula
   const handleOptimisticUpdate = useCallback((data) => {
@@ -138,17 +148,21 @@ const AulaCard = ({
 
   // Función para manejar el toggle de luces con actualización optimista
   const handleToggleLightsOptimistic = useCallback(async () => {
-    if (!isAdmin || !isConnected) {
-      onToggleLights();
+    if (!isAdmin || !isConnected || isPending) {
+      if (!isPending) {
+        onToggleLights();
+      }
       return;
     }
 
-    // Actualización optimista inmediata
-    const lucesActuales = realTimeAula.luces_prendidas || 0;
-    setRealTimeAula(prev => ({
-      ...prev,
-      luces_prendidas: lucesActuales > 0 ? 0 : prev.sensores_count || 0
-    }));
+    // Marcar como pendiente (SIN cambiar el estado visual aún)
+    setIsPending(true);
+    
+    // Configurar timeout de 5 segundos
+    const timeoutId = setTimeout(() => {
+      // Si después de 5 segundos sigue pendiente, quitar estado pendiente
+      setIsPending(false);
+    }, 5000);
 
     try {
       // Enviar comando a través de WebSocket
@@ -156,21 +170,24 @@ const AulaCard = ({
       const luzSensors = realTimeAula.sensores_por_tipo?.luz?.sensores || [];
       if (luzSensors.length > 0) {
         await sendCommand(luzSensors[0].id, 'toggle');
+        
+        // NO actualizar estado localmente - esperar confirmación del WebSocket
+        // El estado pendiente se quitará cuando llegue la actualización del sensor
       } else {
         // Fallback a la función original
         await onToggleLights();
+        clearTimeout(timeoutId);
+        setIsPending(false);
       }
     } catch (error) {
-      // Revertir actualización optimista en caso de error
-      setRealTimeAula(prev => ({
-        ...prev,
-        luces_prendidas: lucesActuales
-      }));
+      // Limpiar timeout y quitar estado pendiente en caso de error
+      clearTimeout(timeoutId);
+      setIsPending(false);
       console.error('Error en toggle de luces:', error);
       // Fallback a la función original
       onToggleLights();
     }
-  }, [isAdmin, isConnected, realTimeAula, sendCommand, onToggleLights]);
+  }, [isAdmin, isConnected, realTimeAula, sendCommand, onToggleLights, isPending]);
 
   // Usar el aula con actualizaciones en tiempo real
   const displayAula = realTimeAula;
@@ -432,13 +449,19 @@ const AulaCard = ({
         <button
           onClick={handleToggleLightsOptimistic}
           className={`w-full py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
-            isConnected
+            isPending
+              ? 'bg-yellow-500 text-white cursor-wait animate-pulse'
+              : isConnected
               ? 'bg-gray-900 hover:bg-gray-800 text-white'
               : 'bg-gray-400 text-gray-600 cursor-not-allowed'
           }`}
-          disabled={!isConnected}
+          disabled={!isConnected || isPending}
         >
-          {isConnected ? 'Apagar Luces' : 'Sin conexión'}
+          {isPending 
+            ? 'Esperando confirmación...' 
+            : isConnected 
+            ? 'Apagar Luces' 
+            : 'Sin conexión'}
         </button>
       )}
 

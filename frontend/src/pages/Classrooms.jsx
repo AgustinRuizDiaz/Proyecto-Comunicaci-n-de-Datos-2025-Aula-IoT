@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { aulaService, sensorService } from '../services/api';
 import { useSocket } from '../contexts/SocketContext';
+import { useAulaControl } from '../hooks/useAulaControl';
 
 const PlusIcon = () => (
   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -53,6 +54,10 @@ const Classrooms = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const socket = useSocket();
+  
+  // Hook para control de aulas con estado pendiente
+  const { toggleAulaSensors, isPending: isAulaPending, clearPending } = useAulaControl();
+  
   const [aulas, setAulas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -100,26 +105,37 @@ const Classrooms = () => {
     
     // Escuchar actualizaciones en tiempo real vía WebSocket
     if (socket) {
-      socket.on('sensorUpdate', (data) => {
-        // Actualizar solo el aula afectada, no recargar todo
-        setAulas(prevAulas => prevAulas.map(aula => {
-          if (aula.id === data.id_aula) {
-            // Actualizar el estado agregado según el tipo de sensor
-            const updatedAula = { ...aula };
-            
-            if (data.tipo === 'Sensor de luz') {
-              // Si hay AL MENOS una luz encendida, mostrar como encendida
-              updatedAula.luces_encendidas = data.estado;
-            } else if (data.tipo === 'Sensor de ventana') {
-              updatedAula.ventanas_abiertas = data.estado;
-            } else if (data.tipo === 'Sensor de movimiento') {
-              updatedAula.personas_detectadas = data.estado;
+      socket.on('sensorUpdate', async (data) => {
+        console.log('⚡ Cambio de sensor detectado en aula', data.id_aula, '- Tipo:', data.tipo, 'Estado:', data.estado);
+        
+        // Recargar todos los sensores del aula afectada para actualizar los iconos
+        try {
+          const response = await sensorService.getByAulaId(data.id_aula);
+          const sensores = response.data?.data || response.data || [];
+          
+          // Calcular estados agregados de todos los sensores
+          const luces_encendidas = sensores.some(s => s.tipo === 'Sensor de luz' && s.estado === 1) ? 1 : 0;
+          const ventanas_abiertas = sensores.some(s => s.tipo === 'Sensor de ventana' && s.estado === 1) ? 1 : 0;
+          const personas_detectadas = sensores.some(s => s.tipo === 'Sensor de movimiento' && s.estado === 1) ? 1 : 0;
+          
+          // Actualizar solo el aula afectada con los estados calculados
+          setAulas(prevAulas => prevAulas.map(aula => {
+            if (aula.id === data.id_aula) {
+              return {
+                ...aula,
+                luces_encendidas,
+                ventanas_abiertas,
+                personas_detectadas
+              };
             }
-            
-            return updatedAula;
-          }
-          return aula;
-        }));
+            return aula;
+          }));
+          
+          // Quitar el estado pendiente del aula si existe
+          clearPending(data.id_aula);
+        } catch (err) {
+          console.error('Error actualizando sensores del aula', data.id_aula, ':', err);
+        }
       });
     }
     
@@ -218,40 +234,10 @@ const Classrooms = () => {
     }
 
     try {
-      // Obtener todos los sensores del aula
-      const response = await sensorService.getByAulaId(aulaId);
-      const sensores = response.data?.data || response.data || [];
-      
-      // Filtrar sensores según el tipo
-      let sensoresFiltrados = [];
-      if (sensorType === 'luces') {
-        sensoresFiltrados = sensores.filter(s => s.tipo === 'Sensor de luz');
-      } else if (sensorType === 'ventanas') {
-        sensoresFiltrados = sensores.filter(s => s.tipo === 'Sensor de ventana');
-      } else if (sensorType === 'personas') {
-        sensoresFiltrados = sensores.filter(s => s.tipo === 'Sensor de movimiento');
-      }
-      
-      if (sensoresFiltrados.length === 0) {
-        console.warn(`No hay sensores de tipo ${sensorType} en el aula ${aulaId}`);
-        return;
-      }
-      
-      // Determinar nuevo estado: si alguno está encendido, apagar todos; si todos están apagados, encender todos
-      const algunoEncendido = sensoresFiltrados.some(s => s.estado === 1);
-      const nuevoEstado = algunoEncendido ? 0 : 1;
-      
-      // Actualizar todos los sensores de ese tipo
-      await Promise.all(
-        sensoresFiltrados.map(sensor => 
-          sensorService.updateEstado(sensor.id, nuevoEstado)
-        )
-      );
-      
-      // Recargar aulas para actualizar los iconos
-      await loadAulas(false);
+      await toggleAulaSensors(aulaId, sensorType, isOnline(aula));
+      // El hook se encarga de todo: estado pendiente, timeout, y limpieza
+      // El WebSocket actualizará el estado cuando llegue confirmación
     } catch (err) {
-      console.error('Error actualizando sensor:', err);
       if (!err.response?.data?.offline) {
         alert('Error actualizando sensor: ' + (err.response?.data?.error || err.message));
       }
@@ -370,10 +356,12 @@ const Classrooms = () => {
                             e.stopPropagation();
                             handleToggleSensor(aula.id, 'luces');
                           }}
-                          disabled={!isOnline(aula)}
+                          disabled={!isOnline(aula) || isAulaPending(aula.id)}
                           className={`hidden md:block p-2 rounded-lg border transition-colors ${
                             !isOnline(aula)
                               ? 'text-gray-400 bg-gray-100 border-gray-200 cursor-not-allowed opacity-50'
+                              : isAulaPending(aula.id)
+                              ? 'text-yellow-600 bg-yellow-50 border-yellow-300 cursor-wait animate-pulse'
                               : aula.luces_encendidas
                               ? 'text-green-600 bg-green-50 hover:text-green-900 hover:bg-green-100 border-green-200'
                               : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50 border-gray-300'
@@ -381,6 +369,8 @@ const Classrooms = () => {
                           title={
                             !isOnline(aula)
                               ? 'Aula fuera de línea'
+                              : isAulaPending(aula.id)
+                              ? 'Esperando confirmación...'
                               : aula.luces_encendidas ? 'Apagar luces' : 'Prender luces'
                           }
                         >
@@ -399,10 +389,12 @@ const Classrooms = () => {
                           e.stopPropagation();
                           handleToggleSensor(aula.id, 'luces');
                         }}
-                        disabled={!isOnline(aula)}
+                        disabled={!isOnline(aula) || isAulaPending(aula.id)}
                         className={`flex-1 p-2 rounded-lg border transition-colors ${
                           !isOnline(aula)
                             ? 'text-gray-400 bg-gray-100 border-gray-200 cursor-not-allowed opacity-50'
+                            : isAulaPending(aula.id)
+                            ? 'text-yellow-600 bg-yellow-50 border-yellow-300 cursor-wait animate-pulse'
                             : aula.luces_encendidas
                             ? 'text-green-600 bg-green-50 hover:text-green-900 hover:bg-green-100 border-green-200'
                             : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50 border-gray-300'
@@ -410,6 +402,8 @@ const Classrooms = () => {
                         title={
                           !isOnline(aula)
                             ? 'Aula fuera de línea'
+                            : isAulaPending(aula.id)
+                            ? 'Esperando confirmación...'
                             : aula.luces_encendidas ? 'Apagar luces' : 'Prender luces'
                         }
                       >

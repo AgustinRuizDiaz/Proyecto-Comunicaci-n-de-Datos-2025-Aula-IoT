@@ -15,20 +15,22 @@ String backendURL = "http://192.168.0.11:3003";
 String espIP = "";  // Se obtiene automáticamente al conectar WiFi
 
 // ========== DEFINICIÓN DE PINES ==========
-// Sensores de Luz (LDR) - Solo entrada
+// Sensores de Luz (LDR) - Entrada analógica
 const int LDR1_PIN = 32;         // Sensor de luz 1 - "Luz 1" (Pin 32 - ADC)
-const int LDR2_PIN = 25;         // Sensor de luz 2 - "Luz 2" (Pin 25)
+const int LDR2_PIN = 25;         // Sensor de luz 2 - "Luz 2" (Pin 25 - ADC)
 
-// Relés (Control de luces) - Necesitan ser pines de salida
-const int RELAY1_PIN = 26;       // Relé 1 - Luz 1 (Pin 26 - GPIO salida)
-const int RELAY2_PIN = 27;       // Relé 2 - Luz 2 (Pin 27 - GPIO salida)
+// Relés (Control de luces) - Salida digital
+// NO SE ENVÍAN AL BACKEND - Se controlan internamente
+const int RELAY1_PIN = 26;       // Relé 1 físico - Controlado por ventana 1 (Pin 26)
+const int RELAY2_PIN = 27;       // Relé 2 físico - Controlado por ventana 2 (Pin 27)
 
-// Sensor de movimiento - Solo entrada
-const int MOTION_SENSOR_PIN = 34; // Sensor PIR (Pin 34 - Solo entrada)
+// Sensor de movimiento - Entrada digital
+const int MOTION_SENSOR_PIN = 34; // Sensor PIR (Pin 34)
 
-// Sensores magnéticos (ventanas) - Solo entrada
-const int WINDOW_SWITCH1_PIN = 39; // Ventana 1 (Pin 39 - Solo entrada)
-const int WINDOW_SWITCH2_PIN = 36; // Ventana 2 (Pin 36 - Solo entrada)
+// Sensores magnéticos de ventanas - Entrada digital
+// ESTOS SÍ SE ENVÍAN AL BACKEND y controlan los relés
+const int WINDOW_SWITCH1_PIN = 22; // Ventana 1 (Pin 22) - Controla RELAY1
+const int WINDOW_SWITCH2_PIN = 23; // Ventana 2 (Pin 23) - Controla RELAY2
 
 // ========== VARIABLES DE ESTADO ==========
 // Estados de relés (luces independientes)
@@ -41,10 +43,8 @@ const unsigned long AUTO_OFF_TIMEOUT = 30 * 1000; // 30 segundos sin movimiento
 
 // Estados previos para detectar cambios
 bool prevMotion = false;
-bool prevWindow1 = false;
-bool prevWindow2 = false;
-int prevLight1 = 0;
-int prevLight2 = 0;
+int prevLight1 = 0;   // Valor anterior del LDR 1
+int prevLight2 = 0;   // Valor anterior del LDR 2
 bool prevRelay1 = false;
 bool prevRelay2 = false;
 
@@ -154,13 +154,15 @@ void processCommand(JsonObject command) {
   Serial.print(" | Estado: ");
   Serial.println(estado);
   
-  // Procesar según el pin
+  // Los comandos vienen para las VENTANAS (pins 22 y 23)
+  // Cada ventana controla su relé correspondiente
+  
   if (pin == 22) {
-    // Relé 1 (Luz 1)
+    // Comando para Ventana 1 → Controla Relé 1
     relay1State = (estado == 1);
-    digitalWrite(RELAY1_PIN, relay1State ? LOW : HIGH); // Lógica inversa
-    Serial.print("💡 Luz 1 (Pin 22): ");
-    Serial.println(relay1State ? "ENCENDIDA" : "APAGADA");
+    digitalWrite(RELAY1_PIN, relay1State ? LOW : HIGH); // Lógica inversa: LOW=ON
+    Serial.print("💡 Relé 1 (controlado por Ventana 1 - Pin 22): ");
+    Serial.println(relay1State ? "ENCENDIDO" : "APAGADO");
     
     // Reiniciar timer de movimiento si se enciende
     if (relay1State) {
@@ -168,11 +170,11 @@ void processCommand(JsonObject command) {
     }
     
   } else if (pin == 23) {
-    // Relé 2 (Luz 2)
+    // Comando para Ventana 2 → Controla Relé 2
     relay2State = (estado == 1);
-    digitalWrite(RELAY2_PIN, relay2State ? LOW : HIGH); // Lógica inversa
-    Serial.print("💡 Luz 2 (Pin 23): ");
-    Serial.println(relay2State ? "ENCENDIDA" : "APAGADA");
+    digitalWrite(RELAY2_PIN, relay2State ? LOW : HIGH); // Lógica inversa: LOW=ON
+    Serial.print("💡 Relé 2 (controlado por Ventana 2 - Pin 23): ");
+    Serial.println(relay2State ? "ENCENDIDO" : "APAGADO");
     
     // Reiniciar timer de movimiento si se enciende
     if (relay2State) {
@@ -186,16 +188,12 @@ void processCommand(JsonObject command) {
 
 // ========== FUNCIÓN: LEER SENSORES ==========
 void readSensors() {
-  // Leer sensores analógicos (LDR) - valores de 0 a 4095
+  // Leer sensores de luz (LDR) - valores de 0 a 4095
   int rawLight1 = analogRead(LDR1_PIN);
   int rawLight2 = analogRead(LDR2_PIN);
   
   // Leer sensor de movimiento
   bool motionDetected = digitalRead(MOTION_SENSOR_PIN);
-  
-  // Leer sensores de ventanas (HIGH = abierta, LOW = cerrada)
-  bool window1Open = digitalRead(WINDOW_SWITCH1_PIN) == HIGH;
-  bool window2Open = digitalRead(WINDOW_SWITCH2_PIN) == HIGH;
   
   // Actualizar timer de movimiento
   if (motionDetected) {
@@ -211,38 +209,34 @@ void readSensors() {
     Serial.println(motionDetected ? "DETECTADO" : "NO");
   }
   
-  if (window1Open != prevWindow1) {
-    hasChanges = true;
-    Serial.print("🪟 Ventana 1: ");
-    Serial.println(window1Open ? "ABIERTA" : "CERRADA");
-  }
-  
-  if (window2Open != prevWindow2) {
-    hasChanges = true;
-    Serial.print("🪟 Ventana 2: ");
-    Serial.println(window2Open ? "ABIERTA" : "CERRADA");
-  }
-  
+  // Detectar cambios en LDRs (umbral de 100 para evitar ruido)
   if (abs(rawLight1 - prevLight1) > 100) {
     hasChanges = true;
-    Serial.print("☀️ Luz 1: ");
+    Serial.print("☀️ LDR 1 (Pin 32): ");
     Serial.println(rawLight1);
   }
   
   if (abs(rawLight2 - prevLight2) > 100) {
     hasChanges = true;
-    Serial.print("☀️ Luz 2: ");
+    Serial.print("☀️ LDR 2 (Pin 25): ");
     Serial.println(rawLight2);
   }
   
-  if (relay1State != prevRelay1 || relay2State != prevRelay2) {
+  // Detectar cambios en relés
+  if (relay1State != prevRelay1) {
     hasChanges = true;
+    Serial.print("💡 Relé 1: ");
+    Serial.println(relay1State ? "ON" : "OFF");
+  }
+  
+  if (relay2State != prevRelay2) {
+    hasChanges = true;
+    Serial.print("💡 Relé 2: ");
+    Serial.println(relay2State ? "ON" : "OFF");
   }
   
   // Guardar estados previos
   prevMotion = motionDetected;
-  prevWindow1 = window1Open;
-  prevWindow2 = window2Open;
   prevLight1 = rawLight1;
   prevLight2 = rawLight2;
   prevRelay1 = relay1State;
@@ -292,7 +286,7 @@ void sendDataToBackend() {
   }
   
   HTTPClient http;
-  String url = backendURL + "/esp32/data";  // Ruta correcta sin /api
+  String url = backendURL + "/esp32/data";
   
   // Construir JSON
   DynamicJsonDocument doc(1024);
@@ -300,36 +294,44 @@ void sendDataToBackend() {
   
   JsonArray sensores = doc.createNestedArray("sensores");
   
-  // Sensor de luz 1 (Pin 32 - LDR)
+  // ========== SENSORES DE LUZ (LDR) ==========
+  // Sensor de luz 1 - Pin 32 (ADC - valores 0-4095)
   JsonObject luz1 = sensores.createNestedObject();
   luz1["pin"] = 32;
-  luz1["estado"] = analogRead(LDR1_PIN) > 500 ? 1 : 0; // Umbral ajustable
+  int rawLight1 = analogRead(LDR1_PIN);
+  luz1["estado"] = rawLight1 > 500 ? 1 : 0; // Umbral ajustable según luz ambiente
   
-  // Sensor de luz 2 (Pin 25 - LDR)
+  // Sensor de luz 2 - Pin 25 (ADC - valores 0-4095)
   JsonObject luz2 = sensores.createNestedObject();
   luz2["pin"] = 25;
-  luz2["estado"] = analogRead(LDR2_PIN) > 500 ? 1 : 0;
+  int rawLight2 = analogRead(LDR2_PIN);
+  luz2["estado"] = rawLight2 > 500 ? 1 : 0; // Umbral ajustable según luz ambiente
   
-  // Sensor de movimiento (Pin 34 - PIR)
+  // ========== SENSOR DE MOVIMIENTO ==========
+  // Pin 34 - PIR (digital)
   JsonObject motion = sensores.createNestedObject();
   motion["pin"] = 34;
   motion["estado"] = digitalRead(MOTION_SENSOR_PIN) ? 1 : 0;
   
-  // Ventana 1 (Pin 39 - Magnético)
+  // ========== SENSORES DE VENTANAS ==========
+  // Estos SÍ se envían y representan el estado de los relés en la app
+  
+  // Ventana 1 - Pin 22 (el backend usa este para controlar Relé 1)
   JsonObject vent1 = sensores.createNestedObject();
-  vent1["pin"] = 39;
-  vent1["estado"] = digitalRead(WINDOW_SWITCH1_PIN) == HIGH ? 1 : 0;
+  vent1["pin"] = 22;
+  vent1["estado"] = relay1State ? 1 : 0; // Estado del relé 1
   
-  // Ventana 2 (Pin 36 - Magnético)
+  // Ventana 2 - Pin 23 (el backend usa este para controlar Relé 2)
   JsonObject vent2 = sensores.createNestedObject();
-  vent2["pin"] = 36;
-  vent2["estado"] = digitalRead(WINDOW_SWITCH2_PIN) == HIGH ? 1 : 0;
-  
-  // NO enviamos los relés (pins 22 y 23) al backend
-  // Se manejan internamente en el ESP32
+  vent2["pin"] = 23;
+  vent2["estado"] = relay2State ? 1 : 0; // Estado del relé 2
   
   String jsonString;
   serializeJson(doc, jsonString);
+  
+  // Debug: Mostrar JSON que se envía
+  Serial.println("📤 JSON enviado:");
+  Serial.println(jsonString);
   
   // Enviar HTTP POST
   http.begin(url);
@@ -348,8 +350,14 @@ void sendDataToBackend() {
       
       if (!error && respDoc.containsKey("comandos")) {
         JsonArray comandos = respDoc["comandos"];
-        for (JsonObject cmd : comandos) {
-          processCommand(cmd);
+        if (comandos.size() > 0) {
+          Serial.print("📥 Recibidos ");
+          Serial.print(comandos.size());
+          Serial.println(" comando(s) pendiente(s)");
+          
+          for (JsonObject cmd : comandos) {
+            processCommand(cmd);
+          }
         }
       }
     }
@@ -380,16 +388,20 @@ void setup() {
   
   // Configurar pines de entrada (sensores)
   pinMode(MOTION_SENSOR_PIN, INPUT);
-  pinMode(WINDOW_SWITCH1_PIN, INPUT_PULLUP);
-  pinMode(WINDOW_SWITCH2_PIN, INPUT_PULLUP);
-  pinMode(LDR1_PIN, INPUT);
-  pinMode(LDR2_PIN, INPUT);
+  pinMode(WINDOW_SWITCH1_PIN, INPUT);  // Pin 22 - Input digital para ventana 1
+  pinMode(WINDOW_SWITCH2_PIN, INPUT);  // Pin 23 - Input digital para ventana 2
+  pinMode(LDR1_PIN, INPUT);            // Pin 32 - Input analógico
+  pinMode(LDR2_PIN, INPUT);            // Pin 25 - Input analógico
   
-  // Configurar ADC
+  // Configurar ADC para sensores de luz
   analogReadResolution(12);        // Resolución de 12 bits (0-4095)
   analogSetAttenuation(ADC_11db);  // Rango completo 0-3.3V
   
-  Serial.println("✓ Pines configurados");
+  Serial.println("✓ Pines configurados:");
+  Serial.println("  - Relés (salida): 26, 27");
+  Serial.println("  - LDRs (entrada analógica): 32, 25");
+  Serial.println("  - Movimiento (entrada digital): 34");
+  Serial.println("  - Ventanas (entrada digital): 22, 23");
   
   // Conectar WiFi
   connectWiFi();

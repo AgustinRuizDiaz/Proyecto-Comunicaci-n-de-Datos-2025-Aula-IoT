@@ -1,18 +1,35 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { aulaService, sensorService } from '../services/api';
-import { useSocket } from '../contexts/SocketContext';
+import { useAulaSensors } from '../hooks/useAulaSensors';
+import { useSensorControl } from '../hooks/useSensorControl';
 
 export default function AulaDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
-  const socket = useSocket();
   
-  const [aula, setAula] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  // Hook personalizado para manejar aula y sensores
+  const {
+    aula,
+    loading,
+    error,
+    sensores,
+    loadingSensores,
+    isOnline,
+    loadAulaData,
+    formatLastSignal,
+    setError
+  } = useAulaSensors(id, (sensorId) => {
+    // Callback cuando llega actualización del WebSocket
+    clearPending(sensorId);
+  });
+  
+  // Hook para control de sensores con estado pendiente
+  const { toggleSensor, isPending: isSensorPending, clearPending } = useSensorControl();
+  
+  // Estados del formulario de aula
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({ nombre: '', ip: '' });
   const [deleteConfirm, setDeleteConfirm] = useState(false);
@@ -20,8 +37,6 @@ export default function AulaDetail() {
   const [deleting, setDeleting] = useState(false);
 
   // Estados para sensores
-  const [sensores, setSensores] = useState([]);
-  const [loadingSensores, setLoadingSensores] = useState(false);
   const [showSensorForm, setShowSensorForm] = useState(false);
   const [editingSensor, setEditingSensor] = useState(null);
   const [sensorFormData, setSensorFormData] = useState({
@@ -33,46 +48,15 @@ export default function AulaDetail() {
   const [deletingSensor, setDeletingSensor] = useState(null);
   const [savingSensor, setSavingSensor] = useState(false);
 
-  useEffect(() => {
-    loadAulaData(true); // Primera carga con loading
-    
-    // Polling para actualizar estado del aula (online/offline) cada 10 segundos
-    const aulaPollingInterval = setInterval(() => {
-      loadAulaData(false); // Actualizaciones silenciosas sin loading
-    }, 10000);
-    
-    return () => clearInterval(aulaPollingInterval);
-  }, [id]);
-
-  const loadAulaData = async (showLoading = true) => {
-    try {
-      if (showLoading) {
-        setLoading(true);
-      }
-      setError(null);
-      const response = await aulaService.getById(id);
-      
-      console.log('Response from API:', response); // Debug
-      
-      // El backend devuelve { data: { success: true, data: aula } }
-      const aulaData = response.data?.data || response.data || response;
-      
-      console.log('Aula data:', aulaData); // Debug
-      
-      setAula(aulaData);
-      setFormData({ 
-        nombre: aulaData.nombre || '', 
-        ip: aulaData.ip || '' 
+  // Actualizar formData cuando cambia el aula
+  React.useEffect(() => {
+    if (aula) {
+      setFormData({
+        nombre: aula.nombre || '',
+        ip: aula.ip || ''
       });
-    } catch (err) {
-      console.error('Error cargando aula:', err);
-      setError('No se pudo cargar la información del aula');
-    } finally {
-      if (showLoading) {
-        setLoading(false);
-      }
     }
-  };
+  }, [aula]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -106,88 +90,6 @@ export default function AulaDetail() {
       setDeleteConfirm(false);
     }
   };
-
-  const formatLastSignal = (lastSignal) => {
-    if (!lastSignal) return 'Nunca';
-    
-    const now = new Date();
-    const signalDate = new Date(lastSignal);
-    const diffMs = now - signalDate;
-    const diffMinutes = Math.floor(diffMs / 60000);
-    
-    if (diffMinutes < 1) return 'Hace menos de un minuto';
-    if (diffMinutes < 60) return `Hace ${diffMinutes} minuto${diffMinutes !== 1 ? 's' : ''}`;
-    
-    const diffHours = Math.floor(diffMinutes / 60);
-    if (diffHours < 24) return `Hace ${diffHours} hora${diffHours !== 1 ? 's' : ''}`;
-    
-    const diffDays = Math.floor(diffHours / 24);
-    return `Hace ${diffDays} día${diffDays !== 1 ? 's' : ''}`;
-  };
-
-  const isOnline = (lastSignal) => {
-    if (!lastSignal) return false;
-    const now = new Date();
-    const signalDate = new Date(lastSignal);
-    const diffMinutes = (now - signalDate) / 60000;
-    return diffMinutes < 2;
-  };
-
-  // Funciones para sensores
-  const loadSensores = async (showLoading = true) => {
-    try {
-      if (showLoading) {
-        setLoadingSensores(true);
-      }
-      const response = await sensorService.getByAulaId(id);
-      let sensoresData = response.data?.data || response.data || [];
-      
-      // Si el aula está offline, forzar todos los sensores a estado 0
-      if (aula && !isOnline(aula.ultima_senal)) {
-        sensoresData = sensoresData.map(sensor => ({
-          ...sensor,
-          estado: 0
-        }));
-      }
-      
-      setSensores(sensoresData);
-    } catch (err) {
-      console.error('Error cargando sensores:', err);
-    } finally {
-      if (showLoading) {
-        setLoadingSensores(false);
-      }
-    }
-  };
-
-  useEffect(() => {
-    if (id && aula) {
-      loadSensores(true); // Primera carga con loading
-      
-      // Escuchar cambios de sensores vía WebSocket en tiempo real
-      if (socket) {
-        socket.on('sensorUpdate', (data) => {
-          if (data.id_aula === parseInt(id)) {
-            console.log('⚡ Cambio de sensor detectado vía WebSocket:', data);
-            
-            // Actualizar solo el sensor específico, no recargar todos
-            setSensores(prevSensores => prevSensores.map(sensor => 
-              sensor.id === data.id 
-                ? { ...sensor, estado: data.estado }
-                : sensor
-            ));
-          }
-        });
-      }
-      
-      // Limpiar al desmontar
-      return () => {
-        if (socket) {
-          socket.off('sensorUpdate');
-        }
-      };
-    }
-  }, [id, aula, socket]);
 
   const handleSensorInputChange = (e) => {
     const { name, value } = e.target;
@@ -277,29 +179,11 @@ export default function AulaDetail() {
   };
 
   const handleToggleSensorEstado = async (sensorId, estadoActual) => {
-    // Si el aula está offline, no hacer nada (el botón ya estará deshabilitado)
-    if (aula && !isOnline(aula.ultima_senal)) {
-      return;
-    }
-    
     try {
-      const nuevoEstado = estadoActual === 1 ? 0 : 1;
-      
-      // Actualizar estado localmente de inmediato (optimistic update)
-      setSensores(prev => prev.map(s => 
-        s.id === sensorId ? { ...s, estado: nuevoEstado } : s
-      ));
-      
-      // Enviar al servidor (WebSocket se encargará de actualizar a todos)
-      await sensorService.updateEstado(sensorId, nuevoEstado);
-      
-      // NO recargar - el WebSocket actualizará cuando el ESP32 confirme
+      await toggleSensor(sensorId, estadoActual, isOnline);
+      // El hook se encarga de todo: estado pendiente, timeout, y limpieza
+      // El WebSocket actualizará el estado cuando llegue confirmación
     } catch (err) {
-      console.error('Error cambiando estado del sensor:', err);
-      // Revertir cambio optimista en caso de error
-      setSensores(prev => prev.map(s => 
-        s.id === sensorId ? { ...s, estado: estadoActual } : s
-      ));
       alert('Error al cambiar el estado del sensor');
     }
   };
@@ -367,8 +251,6 @@ export default function AulaDetail() {
     );
   }
 
-  const online = isOnline(aula.ultima_senal);
-
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <div className="max-w-4xl mx-auto px-4 py-8">
@@ -393,9 +275,9 @@ export default function AulaDetail() {
             <div className="flex items-center">
               <span className="text-gray-700 font-medium w-32">Estado:</span>
               <div className="flex items-center">
-                <span className={`inline-block w-3 h-3 rounded-full mr-2 ${online ? 'bg-green-500' : 'bg-red-500'}`}></span>
-                <span className={online ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
-                  {online ? 'En línea' : 'Fuera de línea'}
+                <span className={`inline-block w-3 h-3 rounded-full mr-2 ${isOnline ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                <span className={isOnline ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                  {isOnline ? 'En línea' : 'Fuera de línea'}
                 </span>
               </div>
             </div>
@@ -533,17 +415,21 @@ export default function AulaDetail() {
                             e.stopPropagation();
                             handleToggleSensorEstado(sensor.id, sensor.estado);
                           }}
-                          disabled={!isOnline(aula?.ultima_senal)}
+                          disabled={!isOnline || isSensorPending(sensor.id)}
                           className={`p-2 rounded-lg border transition-colors ${
-                            !isOnline(aula?.ultima_senal)
+                            !isOnline
                               ? 'text-gray-400 bg-gray-100 border-gray-200 cursor-not-allowed opacity-50'
+                              : isSensorPending(sensor.id)
+                              ? 'text-yellow-600 bg-yellow-50 border-yellow-300 cursor-wait animate-pulse'
                               : sensor.estado === 1
                               ? 'text-green-600 bg-green-50 hover:text-green-900 hover:bg-green-100 border-green-200'
                               : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50 border-gray-300'
                           }`}
                           title={
-                            !isOnline(aula?.ultima_senal) 
-                              ? 'Aula fuera de línea' 
+                            !isOnline 
+                              ? 'Aula fuera de línea'
+                              : isSensorPending(sensor.id)
+                              ? 'Esperando confirmación...'
                               : sensor.estado === 1 ? 'Apagar' : 'Encender'
                           }
                         >
