@@ -311,7 +311,7 @@ router.patch('/:id/estado', async (req, res) => {
     if (io) {
       const command = {
         pin: sensorAntes.pin,
-        action: estado === 1 ? 'on' : 'off'
+        estado: estado  // 0 o 1 - El ESP32 espera este formato
       };
       
       const roomName = `esp32:${aula.ip}`;

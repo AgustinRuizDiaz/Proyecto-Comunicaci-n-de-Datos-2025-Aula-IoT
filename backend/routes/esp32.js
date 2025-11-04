@@ -13,39 +13,28 @@ router.post('/data', async (req, res) => {
 
     // Validar datos
     if (!ip || !sensores || !Array.isArray(sensores)) {
-      console.log('❌ Datos inválidos recibidos:', req.body);
       return res.status(400).json({
         success: false,
         error: 'Datos inválidos. Se requiere ip y array de sensores'
       });
     }
 
-    console.log(`📡 Datos recibidos de ESP32 con IP: ${ip}`);
-    console.log(`   Sensores recibidos:`, sensores);
-
     // Buscar el aula por IP
-    console.log(`🔍 Buscando aula con IP: ${ip}`);
     const db = require('../database');
     const aula = await db.get('SELECT * FROM aulas WHERE ip = ?', [ip]);
-    
-    console.log('✅ Resultado búsqueda aula:', aula);
 
     if (!aula) {
-      console.log(`❌ Aula NO encontrada con IP: ${ip}`);
+      console.log(`⚠️ Aula NO encontrada con IP: ${ip}`);
       return res.status(404).json({
         success: false,
         error: `No se encontró aula con IP ${ip}`
       });
     }
 
-    console.log(`✅ Aula encontrada: ${aula.nombre} (ID: ${aula.id})`);
-
     // Actualizar última señal (heartbeat)
     await Aula.updateUltimaSenal(aula.id);
-    console.log(`  ✅ Heartbeat actualizado para aula ${aula.nombre} (ID: ${aula.id})`);
 
     // Actualizar estados de sensores
-    console.log(`  📊 Procesando ${sensores.length} sensores...`);
     for (const sensorData of sensores) {
       const { pin, estado } = sensorData;
       
@@ -56,51 +45,29 @@ router.post('/data', async (req, res) => {
       );
 
       if (sensor) {
-        console.log(`  🔍 Sensor encontrado: ${sensor.tipo} (ID: ${sensor.id}, Pin: ${pin})`);
-        console.log(`     Estado anterior: ${sensor.estado} → Nuevo estado: ${estado}`);
-        
         // Verificar si el estado realmente cambió
         const estadoCambio = sensor.estado !== estado;
         
         // Actualizar estado del sensor
-        const sensorActualizado = await Sensor.updateEstado(sensor.id, estado);
-        console.log(`  ✅ Sensor pin ${pin} actualizado exitosamente a estado ${estado}`);
+        await Sensor.updateEstado(sensor.id, estado);
         
-        // Verificar si debemos ignorar este update (fue iniciado por un usuario hace poco)
+        // Verificar si debemos ignorar este update
         const debeIgnorar = recentChanges.shouldIgnoreESP32Update(sensor.id, estado);
-        
-        // Verificar si es un duplicado externo (mismo sensor, mismo estado en los últimos 3 segundos)
         const esDuplicadoExterno = recentChanges.isExternalDuplicate(sensor.id, estado);
         
-        // Crear registro solo si:
-        // 1. El estado cambió
-        // 2. NO es confirmación de cambio de usuario
-        // 3. NO es un duplicado externo
+        // Crear registro solo si cambió y no es duplicado
         if (estadoCambio && !debeIgnorar && !esDuplicadoExterno) {
-          try {
-            await Registro.create({
-              id_sensor: sensor.id,
-              tipo_actuador: 'externo',
-              id_usuario: null,
-              estado: estado
-            });
-            console.log(`  📝 Registro creado: Cambio externo en sensor ${sensor.id} (pin ${pin}) a estado ${estado}`);
-            
-            // Registrar este cambio externo para evitar duplicados futuros
-            recentChanges.recordExternalChange(sensor.id, estado);
-          } catch (error) {
-            console.error('  ⚠️ Error creando registro:', error.message);
-            // No fallar la actualización del sensor por error en registro
-          }
-        } else if (estadoCambio && debeIgnorar) {
-          console.log(`  ℹ️ Cambio detectado pero es confirmación de cambio de usuario, no se crea registro duplicado`);
-        } else if (estadoCambio && esDuplicadoExterno) {
-          console.log(`  ℹ️ Cambio detectado pero es duplicado externo reciente, no se crea registro`);
-        } else {
-          console.log(`  ℹ️ Estado sin cambios, no se crea registro`);
+          await Registro.create({
+            id_sensor: sensor.id,
+            tipo_actuador: 'externo',
+            id_usuario: null,
+            estado: estado
+          });
+          console.log(`📝 Pin ${pin}: ${estado === 1 ? 'ON' : 'OFF'} (externo)`);
+          recentChanges.recordExternalChange(sensor.id, estado);
         }
         
-        // Notificar a todos los clientes conectados vía WebSocket
+        // Notificar vía WebSocket
         const io = req.app.get('socketio');
         if (io) {
           io.emit('sensorUpdate', {
@@ -110,19 +77,12 @@ router.post('/data', async (req, res) => {
             estado,
             tipo: sensor.tipo
           });
-          console.log(`  ⚡ Actualización enviada vía WebSocket a todos los clientes`);
         }
-      } else {
-        console.log(`  ⚠️ Sensor pin ${pin} NO encontrado en BD para aula ${aula.id}`);
       }
     }
 
-    // Verificar si hay comandos pendientes para este ESP32
+    // Verificar si hay comandos pendientes
     const commands = commandQueue.getAndClearCommands(ip);
-    
-    if (commands.length > 0) {
-      console.log(`  📤 Enviando ${commands.length} comando(s) pendiente(s) a ESP32 ${ip}:`, commands);
-    }
 
     res.json({
       success: true,
@@ -131,12 +91,11 @@ router.post('/data', async (req, res) => {
         id: aula.id,
         nombre: aula.nombre
       },
-      commands: commands // Enviar comandos pendientes al ESP32
+      comandos: commands // IMPORTANTE: debe ser "comandos" no "commands"
     });
 
   } catch (error) {
-    console.error('❌ ERROR CRÍTICO procesando datos ESP32:', error);
-    console.error('   Stack:', error.stack);
+    console.error('❌ Error procesando datos ESP32:', error.message);
     res.status(500).json({
       success: false,
       error: error.message

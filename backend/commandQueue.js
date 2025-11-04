@@ -9,13 +9,15 @@ module.exports = {
   // Agregar comando a la cola
   enqueueCommand(ip, pin, action) {
     const commands = pendingCommands.get(ip) || [];
+    // Convertir action ('on'/'off') a estado (1/0)
+    const estado = action === 'on' ? 1 : 0;
     commands.push({
       pin: pin,
-      action: action,
+      estado: estado,  // Cambiar 'action' por 'estado'
       timestamp: Date.now()
     });
     pendingCommands.set(ip, commands);
-    console.log(`📤 Comando encolado para ESP32 ${ip}: pin ${pin} → ${action}`);
+    console.log(`📤 Comando encolado: Pin ${pin} → ${estado === 1 ? 'ON' : 'OFF'}`);
   },
   
   // Obtener y limpiar comandos pendientes

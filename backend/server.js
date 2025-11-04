@@ -56,9 +56,27 @@ async function initializeServer() {
 
     // Socket.IO connection handling
     io.on('connection', (socket) => {
-      console.log('✅ Nuevo cliente conectado:', socket.id);
+      console.log('✅ Cliente WebSocket conectado:', socket.id);
 
-      // Manejar identificación de ESP32
+      // Manejar join del ESP32 (cuando se conecta)
+      socket.on('join', (data) => {
+        console.log('📥 Evento JOIN recibido:', JSON.stringify(data));
+        const { room } = data;
+        if (room && room.startsWith('esp32:')) {
+          socket.join(room);
+          console.log(`✅ ESP32 unido a sala: ${room}`);
+          
+          // Verificar que realmente está en la sala
+          const roomClients = io.sockets.adapter.rooms.get(room);
+          console.log(`   📊 Clientes en sala ${room}: ${roomClients ? roomClients.size : 0}`);
+          
+          socket.emit('joined', { room, socketId: socket.id });
+        } else {
+          console.log('⚠️ Nombre de sala inválido:', room);
+        }
+      });
+
+      // Manejar identificación de ESP32 (método alternativo)
       socket.on('esp32:identify', (data) => {
         const { ip } = data;
         console.log(`🔌 ESP32 identificado: ${ip} (socket: ${socket.id})`);
@@ -72,7 +90,7 @@ async function initializeServer() {
       });
 
       socket.on('disconnect', () => {
-        console.log('❌ Cliente desconectado:', socket.id);
+        console.log('❌ Cliente WebSocket desconectado:', socket.id);
       });
 
       socket.on('user_action', (data) => {
