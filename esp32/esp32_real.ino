@@ -288,27 +288,75 @@ void checkAutoOff() {
   
   // Si ha pasado más de 30 segundos sin movimiento, apagar luces
   if (timeSinceMotion > AUTO_OFF_TIMEOUT) {
-    bool wasOn = false;
+    bool relay1WasOn = relay1State;
+    bool relay2WasOn = relay2State;
     
     if (relay1State) {
       relay1State = false;
       digitalWrite(RELAY1_PIN, HIGH); // Apagar
       Serial.println("💤 Apagado automático: Luz 1 (30s sin movimiento)");
-      wasOn = true;
     }
     
     if (relay2State) {
       relay2State = false;
       digitalWrite(RELAY2_PIN, HIGH); // Apagar
       Serial.println("💤 Apagado automático: Luz 2 (30s sin movimiento)");
-      wasOn = true;
     }
     
-    // Si se apagó alguna luz, enviar actualización
-    if (wasOn) {
-      sendDataToBackend();
+    // Si se apagó alguna luz, enviar notificación de auto-off
+    if (relay1WasOn || relay2WasOn) {
+      sendAutoOffNotification(relay1WasOn, relay2WasOn);
+      // Actualizar estados previos para evitar envío duplicado
+      prevRelay1 = relay1State;
+      prevRelay2 = relay2State;
     }
   }
+}
+
+// ========== FUNCIÓN: ENVIAR NOTIFICACIÓN DE APAGADO AUTOMÁTICO ==========
+void sendAutoOffNotification(bool relay1WasOn, bool relay2WasOn) {
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("⚠ WiFi desconectado, no se puede enviar notificación auto-off");
+    return;
+  }
+  
+  HTTPClient http;
+  String url = backendURL + "/esp32/auto-off";
+  
+  // Construir JSON con los sensores que se apagaron
+  DynamicJsonDocument doc(512);
+  doc["ip"] = espIP;
+  
+  JsonArray sensores = doc.createNestedArray("sensores");
+  
+  if (relay1WasOn) {
+    JsonObject luz1 = sensores.createNestedObject();
+    luz1["pin"] = 32;
+    luz1["estado"] = 0; // Apagado
+  }
+  
+  if (relay2WasOn) {
+    JsonObject luz2 = sensores.createNestedObject();
+    luz2["pin"] = 33;
+    luz2["estado"] = 0; // Apagado
+  }
+  
+  String jsonString;
+  serializeJson(doc, jsonString);
+  
+  // Enviar HTTP POST
+  http.begin(url);
+  http.addHeader("Content-Type", "application/json");
+  
+  int httpCode = http.POST(jsonString);
+  
+  if (httpCode > 0) {
+    Serial.println("✓ Notificación auto-off enviada (HTTP " + String(httpCode) + ")");
+  } else {
+    Serial.println("✗ Error enviando auto-off: " + String(httpCode));
+  }
+  
+  http.end();
 }
 
 // ========== FUNCIÓN: ENVIAR DATOS AL BACKEND ==========
@@ -333,12 +381,12 @@ void sendDataToBackend() {
   JsonObject luz1 = sensores.createNestedObject();
   luz1["pin"] = 32;
   int rawLight1 = analogRead(LDR1_PIN);
-  luz1["estado"] = rawLight1 > 4094 ? 1 : 0; // Umbral 4094: 1 = foco encendido, 0 = solo luz natural
+  luz1["estado"] = rawLight1 > 4000 ? 1 : 0; // Umbral 4000: 1 = foco encendido, 0 = solo luz natural
   
   JsonObject luz2 = sensores.createNestedObject();
   luz2["pin"] = 33;
   int rawLight2 = analogRead(LDR2_PIN);
-  luz2["estado"] = rawLight2 > 4094 ? 1 : 0; // Umbral 4094: 1 = foco encendido, 0 = solo luz natural
+  luz2["estado"] = rawLight2 > 4000 ? 1 : 0; // Umbral 4000: 1 = foco encendido, 0 = solo luz natural
   
   // ========== SENSOR DE MOVIMIENTO - SOLO LECTURA ==========
   JsonObject motion = sensores.createNestedObject();

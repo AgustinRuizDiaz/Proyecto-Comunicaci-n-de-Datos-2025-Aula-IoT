@@ -133,4 +133,82 @@ router.post('/command', async (req, res) => {
   }
 });
 
+// POST /esp32/auto-off - Recibir notificación de apagado automático (sin autenticación)
+router.post('/auto-off', async (req, res) => {
+  try {
+    const { ip, sensores } = req.body;
+
+    // Validar datos
+    if (!ip || !sensores || !Array.isArray(sensores)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Datos inválidos. Se requiere ip y array de sensores'
+      });
+    }
+
+    // Buscar el aula por IP
+    const db = require('../database');
+    const aula = await db.get('SELECT * FROM aulas WHERE ip = ?', [ip]);
+
+    if (!aula) {
+      console.log(`⚠️ Aula NO encontrada con IP: ${ip}`);
+      return res.status(404).json({
+        success: false,
+        error: `No se encontró aula con IP ${ip}`
+      });
+    }
+
+    // Procesar apagados automáticos
+    for (const sensorData of sensores) {
+      const { pin, estado } = sensorData;
+      
+      // Buscar sensor por aula_id y pin
+      const sensor = await db.get(
+        'SELECT * FROM sensores WHERE id_aula = ? AND pin = ?',
+        [aula.id, pin]
+      );
+
+      if (sensor && estado === 0) { // Solo procesar apagados
+        // Actualizar estado del sensor
+        await Sensor.updateEstado(sensor.id, estado);
+        
+        // Crear registro tipo "automatico"
+        await Registro.create({
+          id_sensor: sensor.id,
+          tipo_actuador: 'automatico',
+          id_usuario: null,
+          estado: estado
+        });
+        
+        console.log(`💤 Apagado automático: Pin ${pin} (30s sin movimiento)`);
+        
+        // Notificar vía WebSocket
+        const io = req.app.get('socketio');
+        if (io) {
+          io.emit('sensorUpdate', {
+            id: sensor.id,
+            id_aula: aula.id,
+            pin,
+            estado,
+            tipo: sensor.tipo,
+            automatico: true // Flag para indicar que fue automático
+          });
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'Apagado automático registrado correctamente'
+    });
+
+  } catch (error) {
+    console.error('❌ Error procesando auto-off:', error.message);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;

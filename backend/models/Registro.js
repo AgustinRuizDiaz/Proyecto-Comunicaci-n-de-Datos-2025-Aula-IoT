@@ -8,9 +8,9 @@ class Registro {
   static async create({ id_sensor, tipo_actuador, id_usuario, estado }) {
     try {
       // Validar tipo_actuador
-      const tiposValidos = ['usuario', 'inactividad', 'externo'];
+      const tiposValidos = ['usuario', 'inactividad', 'externo', 'automatico'];
       if (!tiposValidos.includes(tipo_actuador)) {
-        throw new Error(`Tipo de actuador inválido: ${tipo_actuador}. Debe ser: usuario, inactividad o externo`);
+        throw new Error(`Tipo de actuador inválido: ${tipo_actuador}. Debe ser: usuario, inactividad, externo o automatico`);
       }
 
       // Validar id_usuario si tipo es 'usuario'
